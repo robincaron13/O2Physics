@@ -81,6 +81,39 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "MCVtxZ", "Vtx Z (MC)", false, 75, -15.0, 15.0, VarManager::kMCVtxZ);
       hm->AddHistogram(histClass, "MCImpPar_CentVZERO", "MC impact param vs CentVZERO", false, 50, 0.0, 100.0, VarManager::kCentVZERO, 20, 0.0, 20.0, VarManager::kMCEventImpParam);
     }
+//    if (subGroupStr.Contains("qn")) {
+//     hm->AddHistogram(histClass, "Qn0X", "Qn0 X ", false, 100, -1.5, 1.5, VarManager::kQ0X0);
+//     hm->AddHistogram(histClass, "Qn0Y", "Qn0 Y ", false, 100, -1.5, 1.5, VarManager::kQ0Y0);
+//     hm->AddHistogram(histClass, "Qn1X", "Qn1 X ", false, 100, -1.5, 1.5, VarManager::kQ1X0);
+//     hm->AddHistogram(histClass, "Qn1Y", "Qn1 Y ", false, 100, -1.5, 1.5, VarManager::kQ1Y0);
+//     hm->AddHistogram(histClass, "Qn2X", "Qn2 X ", false, 100, -1.5, 1.5, VarManager::kQ2X0);
+//     hm->AddHistogram(histClass, "Qn2Y", "Qn2 Y ", false, 100, -1.5, 1.5, VarManager::kQ2Y0);
+//     hm->AddHistogram(histClass, "Qn3X", "Qn3 X ", false, 100, -1.5, 1.5, VarManager::kQ3X0);
+//     hm->AddHistogram(histClass, "Qn3Y", "Qn3 Y ", false, 100, -1.5, 1.5, VarManager::kQ3Y0);
+//     hm->AddHistogram(histClass, "Qn4X", "Qn4 X ", false, 100, -1.5, 1.5, VarManager::kQ4X0);
+//     hm->AddHistogram(histClass, "Qn4Y", "Qn4 Y ", false, 100, -1.5, 1.5, VarManager::kQ4Y0);
+//     hm->AddHistogram(histClass, "hQn0XvsZvtx", "Qn0 X vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ0X0);
+//     hm->AddHistogram(histClass, "hQn0YvsZvtx", "Qn0 Y vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ0Y0);
+//    hm->AddHistogram(histClass, "hQn1XvsZvtx", "Qn1 X vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ1X0);
+//    hm->AddHistogram(histClass, "hQn1YvsZvtx", "Qn1 Y vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ1Y0);
+//    hm->AddHistogram(histClass, "hQn2XvsZvtx", "Qn2 X vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ2X0);
+//    hm->AddHistogram(histClass, "hQn2YvsZvtx", "Qn2 Y vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ2Y0);
+//    hm->AddHistogram(histClass, "hQn3XvsZvtx", "Qn3 X vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ3X0);
+//    hm->AddHistogram(histClass, "hQn3YvsZvtx", "Qn3 Y vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ3Y0);
+//    hm->AddHistogram(histClass, "hQn4XvsZvtx", "Qn4 X vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ4X0);
+//    hm->AddHistogram(histClass, "hQn4YvsZvtx", "Qn4 Y vs Zvtx", false, 75, -15.0, 15.0, VarManager::kVtxZ, 75, -1.5, 1.5, VarManager::kQ4Y0);
+//    hm->AddHistogram(histClass, "hQn0XvsCent", "Qn0 X vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ0X0);
+//    hm->AddHistogram(histClass, "hQn0YvsCent", "Qn0 Y vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ0Y0);
+//    hm->AddHistogram(histClass, "hQn1XvsCent", "Qn1 X vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ1X0);
+//    hm->AddHistogram(histClass, "hQn1YvsCent", "Qn1 Y vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ1Y0);
+//    hm->AddHistogram(histClass, "hQn2XvsCent", "Qn2 X vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ2X0);
+//    hm->AddHistogram(histClass, "hQn2YvsCent", "Qn2 Y vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ2Y0);
+//    hm->AddHistogram(histClass, "hQn3XvsCent", "Qn3 X vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ3X0);
+//    hm->AddHistogram(histClass, "hQn3YvsCent", "Qn3 Y vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ3Y0);
+//    hm->AddHistogram(histClass, "hQn4XvsCent", "Qn4 X vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ4X0);
+//    hm->AddHistogram(histClass, "hQn4YvsCent", "Qn4 Y vs Cent", false, 75, -15.0, 15.0, VarManager::kCentVZERO, 75, -1.5, 1.5, VarManager::kQ4Y0);
+//        
+//    }
   }
 
   if (groupStr.Contains("track")) {

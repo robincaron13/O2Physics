@@ -23,6 +23,11 @@ std::map<int, int> VarManager::fgRunMap;
 TString VarManager::fgRunStr = "";
 o2::vertexing::DCAFitterN<2> VarManager::fgFitterTwoProng;
 o2::vertexing::FwdDCAFitterN<2> VarManager::FwdfgFitterTwoProng;
+TComplex VarManager::Qvector[VarManager::fmaxHarmonic][VarManager::fmaxPower] = {{0.0}};    // Q-vector components
+TComplex VarManager::QvectorNormalized[VarManager::fmaxHarmonic][VarManager::fmaxPower] = {{0.0}};    // Q-vector components normalized
+TComplex VarManager::QvectorPos[VarManager::fmaxHarmonic][VarManager::fmaxPower] = {{0.0}}; // Q-vector components with positive eta range
+TComplex VarManager::QvectorNeg[VarManager::fmaxHarmonic][VarManager::fmaxPower] = {{0.0}}; // Q-vector components with negative eta range
+Double_t VarManager::PSIn[VarManager::fmaxHarmonic][VarManager::fmaxPower] = {{0.0}};    // event plane components
 
 //__________________________________________________________________
 VarManager::VarManager() : TObject()
@@ -106,6 +111,18 @@ void VarManager::FillTrackDerived(float* values)
   //
   if (fgUsedVars[kP]) {
     values[kP] = values[kPt] * std::cosh(values[kEta]);
+  }
+}
+
+void VarManager::ResetQvector()
+{
+  // Reset all Q-vector components to zero before starting a new event.
+  for (Int_t h = 0; h < VarManager::fmaxHarmonic; h++) {
+    for (Int_t p = 0; p < VarManager::fmaxPower; p++) {
+      VarManager::Qvector[h][p] = TComplex(0., 0.);
+      VarManager::QvectorPos[h][p] = TComplex(0., 0.);
+      VarManager::QvectorNeg[h][p] = TComplex(0., 0.);
+    }
   }
 }
 
@@ -320,6 +337,26 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kVertexingProcCode] = "";
   fgVariableNames[kVertexingChi2PCA] = "Pair #chi^{2} at PCA";
   fgVariableUnits[kVertexingChi2PCA] = "";
+//    fgVariableNames[kQ0X0] = "Q_{0,x}^{0} ";
+//    fgVariableUnits[kQ0X0] = "";
+//    fgVariableNames[kQ0Y0] = "Q_{0,y}^{0} ";
+//    fgVariableUnits[kQ0Y0] = "";
+//    fgVariableNames[kQ1X0] = "Q_{1,x}^{0} ";
+//    fgVariableUnits[kQ1X0] = "";
+//    fgVariableNames[kQ1Y0] = "Q_{1,y}^{0} ";
+//    fgVariableUnits[kQ1Y0] = "";
+//    fgVariableNames[kQ2X0] = "Q_{2,x}^{0} ";
+//    fgVariableUnits[kQ2X0] = "";
+//    fgVariableNames[kQ2Y0] = "Q_{2,y}^{0} ";
+//    fgVariableUnits[kQ2Y0] = "";
+//    fgVariableNames[kQ3X0] = "Q_{3,x}^{0} ";
+//    fgVariableUnits[kQ3X0] = "";
+//    fgVariableNames[kQ3Y0] = "Q_{3,y}^{0} ";
+//    fgVariableUnits[kQ3Y0] = "";
+//    fgVariableNames[kQ4X0] = "Q_{4,x}^{0} ";
+//    fgVariableUnits[kQ4X0] = "";
+//    fgVariableNames[kQ4Y0] = "Q_{4,y}^{0} ";
+//    fgVariableUnits[kQ4Y0] = "";
   fgVariableNames[kPairMass] = "mass";
   fgVariableUnits[kPairMass] = "GeV/c2";
   fgVariableNames[kPairPt] = "p_{T}";

@@ -50,7 +50,7 @@ namespace dqanalysisflags
 DECLARE_SOA_COLUMN(IsEventSelected, isEventSelected, int);
 DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, int);
 DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, int);
-} // namespace reducedevent
+} // namespace dqanalysisflags
 
 DECLARE_SOA_TABLE(EventCuts, "AOD", "EVENTCUTS", dqanalysisflags::IsEventSelected);
 DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", dqanalysisflags::IsBarrelSelected);
@@ -618,7 +618,7 @@ struct AnalysisSameEventPairing {
         if (sig->GetNProngs() == 1) { // NOTE: 1-prong signals required
           fGenMCSignals.push_back(*sig);
           histNames += Form("MCTruthGen_%s;", sig->GetName()); // TODO: Add these names to a std::vector to avoid using Form in the process function
-        } else if (sig->GetNProngs() == 2) { // NOTE: 2-prong signals required
+        } else if (sig->GetNProngs() == 2) {                   // NOTE: 2-prong signals required
           fGenMCSignals.push_back(*sig);
           histNames += Form("MCTruthGenPair_%s;", sig->GetName());
         }

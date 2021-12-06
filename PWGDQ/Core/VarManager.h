@@ -28,6 +28,7 @@
 #include <map>
 #include <cmath>
 #include <iostream>
+#include "TComplex.h"
 
 #include "Framework/DataTypes.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -261,6 +262,18 @@ class VarManager : public TObject
     kQuadDCAsigXY,
     kNPairVariables,
 
+//      // Qn vectors variables
+//      kQ0X0,
+//      kQ0Y0,
+//      kQ1X0,
+//      kQ1Y0,
+//      kQ2X0,
+//      kQ2Y0,
+//      kQ3X0,
+//      kQ3Y0,
+//      kQ4X0,
+//      kQ4Y0,
+//      
     // Candidate-track correlation variables
     kPairMass,
     kPairPt,
@@ -281,6 +294,17 @@ class VarManager : public TObject
   static TString fgVariableUnits[kNVars]; // variable units
   static void SetDefaultVarNames();
 
+  static const int fmaxHarmonic = 3;        // max harmonic
+  static const int fmaxPower = 3;        // max power
+  static const Int_t nHarmonicToStore = 2;
+  static TComplex Qvector[fmaxHarmonic][fmaxPower];    // Q-vector components
+  static TComplex QvectorNormalized[fmaxHarmonic][fmaxPower];    // Q-vector components normalized
+  static TComplex QvectorPos[fmaxHarmonic][fmaxPower]; // Q-vector components with positive eta range
+  static TComplex QvectorNeg[fmaxHarmonic][fmaxPower]; // Q-vector components with negative eta range
+  static Double_t PSIn[fmaxHarmonic][fmaxPower];    // event plane components
+    
+  static void ResetQvector();
+    
   static void SetUseVariable(int var)
   {
     if (var >= 0 && var < kNVars) {
@@ -359,7 +383,9 @@ class VarManager : public TObject
   static void FillPairVertexing(C const& collision, T const& t1, T const& t2, float* values = nullptr);
   template <typename T1, typename T2>
   static void FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values = nullptr, float hadronMass = 0.0f);
-
+    template <uint32_t fillMap, typename E, typename C, typename T>
+    static void FillQnVector(E const& event, C const& collision, T const& t1, T const& t2, float* values = nullptr);
+    
  public:
   VarManager();
   ~VarManager() override;
@@ -1024,6 +1050,21 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
     values[kVertexingTauxyErr] = values[kVertexingLxyErr] * v12.M() / (v12.P() * o2::constants::physics::LightSpeedCm2NS);
   }
 }
+//template <uint32_t fillMap, typename E, typename C, typename T>
+//static void FillQnVector(E const& event, C const& collision, T const& t1, T const& t2, float* values = nullptr)
+//{
+//  if (!values) {
+//    values = fgValues;
+//  }
+//
+//  if constexpr ((fillMap & BC) > 0) {
+//    values[kRunNo] = event.bc().runNumber(); // accessed via Collisions table
+//    values[kBC] = event.bc().globalBC();
+//  }
+//
+//    
+//}
+
 
 template <typename T1, typename T2>
 void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float* values, float hadronMass)

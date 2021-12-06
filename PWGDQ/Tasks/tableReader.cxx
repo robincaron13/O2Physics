@@ -784,6 +784,216 @@ struct AnalysisSameEventPairing {
   PROCESS_SWITCH(AnalysisSameEventPairing, processDummy, "Dummy function, enabled only if none of the others are enabled", false);
 };
 
+struct AnalysisQvector {
+
+  //Produces<aod::EventCuts> eventSel;
+  //Produces<aod::MixingHashes> hash;
+  OutputObj<THashList> fOutputList{"output"};
+
+  // TODO: Provide the binning directly via configurables (e.g. vectors of float)
+  Configurable<string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
+  Configurable<string> fConfigTrackCuts{"cfgTrackCuts", "", "Comma separated list of barrel track cuts"};
+  Configurable<string> fConfigMuonCuts{"cfgMuonCuts", "", "Comma separated list of muon cuts"};
+  Configurable<bool> fConfigQA{"cfgQA", false, "If true, fill QA histograms"};
+  //Configurable<int> fmaxHarmonic{"maxHarmonic", 3, "Maximum harmonic to be computed"};
+  //Configurable<int> fmaxPower{"maxPower", 1, "Maximum power to be computed"};
+  Configurable<bool> bUseWeights{"UseWeights", false, "If true, fill Q vectors with weights for phi and p_T"};
+  Configurable<bool> bsubEvents{"subEvents", false, "If true, fill use sub-events methods with different detector gaps"};
+  Configurable<float> fetaLimit{"etaLimit", 0.0, "Eta gap separation (e.g ITS=0.0, MFT=-3.05), only if subEvents=true"};
+
+    Configurable<string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+    Configurable<string> ccdbPath{"ccdb-path", "Users/lm", "base path to the ccdb object"};
+    Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
+    Service<o2::ccdb::BasicCCDBManager> ccdb;
+    
+  HistogramManager* fHistMan = nullptr;
+  AnalysisCompositeCut* fEventCut;
+
+  // TODO: Define Q vector calculations and related quantities outside the table reader
+
+  std::vector<std::vector<TString>> fTrackHistNames;
+  float* fValuesQn;
+/*
+  void init(o2::framework::InitContext&)
+  {
+    fEventCut = new AnalysisCompositeCut(true);
+    TString eventCutStr = fConfigEventCuts.value;
+    fValuesQn = new float[VarManager::kNVars];
+
+    fEventCut->AddCut(dqcuts::GetAnalysisCut(eventCutStr.Data()));
+    VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
+
+    TString histNames = "";
+    VarManager::SetDefaultVarNames();
+
+    if (fConfigQA) {
+      fHistMan = new HistogramManager("analysisQHistos", "", VarManager::kNVars);
+      fHistMan->SetUseDefaultVariableNames(kTRUE);
+      fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
+
+      VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+      fOutputList.setObject(fHistMan->GetMainHistogramList());
+    }
+    for (Int_t h = 0; h < VarManager::fmaxHarmonic; h++) {
+      for (Int_t p = 0; p < VarManager::fmaxPower; p++) {
+        std::vector<TString> names = {
+          Form("QnX_h%d_p%d", h, p),
+          Form("QnY_h%d_p%d", h, p),
+          Form("QnXvsVtxZ_h%d_p%d", h, p),
+          Form("QnYvsVtxZ_h%d_p%d", h, p),
+          Form("QnXvsCent_h%d_p%d", h, p),
+          Form("QnYvsCent_h%d_p%d", h, p),
+          Form("QnPSIn_h%d_p%d", h, p),
+          Form("QnVn_h%d_p%d", h, p)};
+        histNames += Form("%s;%s;%s;%s;%s;%s;%s;%s", names[0].Data(), names[1].Data(), names[2].Data(), names[3].Data(), names[4].Data(), names[5].Data(), names[6].Data(), names[7].Data());
+        fTrackHistNames.push_back(names);
+      }
+    }
+
+    ccdb->setURL(url.value);
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
+    ccdb->setCreatedNotAfter(nolaterthan.value);
+    auto histCCDB = ccdb->get<TH1F>(ccdbPath.value);
+    if (!histCCDB) {
+      LOGF(fatal, "CCDB histogram not found");
+    }
+
+    DefineHistograms(fHistMan, histNames.Data());    // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+    fOutputList.setObject(fHistMan->GetMainHistogramList());
+ 
+  }
+
+  HistogramRegistry registry{
+    "registry",
+    {{"h2QnX", "; Q_{n,x}", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"h2QnY", "; Q_{n,y}", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"h2Psin", "; raw #Psi_{n}", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"Zvtx_h2QnX", ";  z_{vtx}; raw Q_{n,x}", {HistType::kTProfile, {{80, -40.0f, 40.0f}}}},
+     {"Zvtx_h2QnY", ";  z_{vtx}; raw Q_{n,y}", {HistType::kTProfile, {{80, -40.0f, 40.0f}}}},
+     {"Mult_h2QnX", "; N_{ch}; raw Q_{n,x}", {HistType::kTProfile, {{100, -1, 99}}}},
+     {"Mult_h2QnY", "; N_{ch}; raw Q_{n,y}", {HistType::kTProfile, {{100, -1, 99}}}},
+     {"Mult_h2VnEP", "; N_{ch}; raw v_{n} {EP}", {HistType::kTProfile, {{100, -0.1, 9.9}}}}}};
+
+  int nMult = 0;    // event multiplicity
+  int nMultPos = 0; // event multiplicity for positive eta
+  int nMultNeg = 0; // event multiplicity for negative eta
+
+  double dPhi = 0., wPhi = 1., wPhiToPowerP = 1.; // azimuthal angle and corresponding weight
+  double rawSP, rawEP = 0.0;
+
+  // Template function to run fill Q vector (alltracks-barrel, alltracks-muon)
+  template <uint32_t TEventFillMap, typename TEvent, typename TCollision, typename TTracks1, typename TTracks2>
+  void runFillQvector(TEvent const& event, TCollision const& collision, TTracks1 const& tracks1, TTracks2 const& tracks2)
+  {
+
+    nMult = tracks1.size();
+    //auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    nMultPos = 0;
+    nMultNeg = 0;
+
+    double normFactor = nMult;
+    double normQ = 0;
+
+    //unsigned int ncuts = fTrackHistNames.size();
+    std::vector<std::vector<TString>> histNames = fTrackHistNames;
+
+    for (auto& track : tracks1) {
+      dPhi = track.phi();
+      // determine corresponding weight:
+      if (bUseWeights) {
+        wPhi = track.pt();
+      }
+      // Calculate Q-vector components:
+      for (Int_t h = 0; h < VarManager::fmaxHarmonic; h++) {
+        for (Int_t p = 0; p < VarManager::fmaxPower; p++) {
+          //if(bUseWeights){wPhiToPowerP = pow(wPhi,p);}
+          VarManager::Qvector[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
+          if (bsubEvents) {
+            if (track.eta() > fetaLimit) {
+              VarManager::QvectorPos[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
+              nMultPos++;
+            }
+            if (track.eta() < fetaLimit) {
+              VarManager::QvectorNeg[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
+              nMultNeg++;
+            }
+          }
+          normQ = TMath::Sqrt(VarManager::Qvector[h][p].Re() * VarManager::Qvector[h][p].Re() + VarManager::Qvector[h][p].Im() * VarManager::Qvector[h][p].Im());
+          VarManager::QvectorNormalized[h][p] = TComplex(VarManager::Qvector[h][p].Re() / normFactor, VarManager::Qvector[h][p].Im() / normFactor);
+          VarManager::PSIn[h][p] = (1.0 / h) * TMath::ATan2(VarManager::QvectorNormalized[h][p].Re(), VarManager::QvectorNormalized[h][p].Im());
+
+          //VarManager::FillEvent<TEventFillMap>(event, fValuesQn);
+          //fHistMan->FillHistClass(histNames[0][0].Data(), VarManager::fgValues);
+        }
+      }
+    } // loop over tracks
+
+    if (nMult > 1.0) {
+
+      registry.get<TH1>(HIST("h2QnX"))->Fill(VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Re());
+      registry.get<TH1>(HIST("h2QnY"))->Fill(VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Im());
+      registry.get<TH1>(HIST("h2Psin"))->Fill(VarManager::PSIn[VarManager::nHarmonicToStore][0]);
+
+      registry.get<TProfile>(HIST("Zvtx_h2QnX"))->Fill(fValuesQn[VarManager::kVtxZ], VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Re());
+      registry.get<TProfile>(HIST("Zvtx_h2QnY"))->Fill(fValuesQn[VarManager::kVtxZ], VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Im());
+      registry.get<TProfile>(HIST("Mult_h2QnX"))->Fill(nMult, VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Re());
+      registry.get<TProfile>(HIST("Mult_h2QnY"))->Fill(nMult, VarManager::QvectorNormalized[VarManager::nHarmonicToStore][0].Im());
+
+      for (auto& track : tracks2) {
+        dPhi = track.phi();
+        LOGF(info, "     track phi = %.2f", dPhi);
+
+        //rawSP = (TMath::Cos(VarManager::nHarmonicToStore * dPhi) * VarManager::QvectorNormalized.Re() + TMath::Sin(VarManager::nHarmonicToStore * dPhi) * VarManager::QvectorNormalized.Im());
+        rawEP = TMath::Cos(VarManager::nHarmonicToStore * (dPhi - VarManager::PSIn[2][0]));
+
+        if (rawEP)
+          registry.get<TProfile>(HIST("Mult_h2VnEP"))->Fill(track.pt(), rawEP);
+
+      } // loop over selected tracks
+    }
+      
+  }
+
+  void processQvectorBarrelSkimmed(MyEvents::iterator const& event, aod::Collisions const& collision, aod::Tracks const& tracks, soa::Filtered<MyBarrelTracksSelected> const& barreltracks)
+  {
+    // Reset the fValues and Qn vector array
+    VarManager::ResetValues(0, VarManager::kNVars);
+    VarManager::ResetQvector();
+    runFillQvector<gkEventFillMap>(event, collision, tracks, barreltracks);
+  }
+
+  void processQvectorMuonsSkimmed(MyEvents::iterator const& event, aod::Collisions const& collision, aod::Tracks const& tracks, soa::Filtered<MyMuonTracksSelected> const& muons)
+  {
+    // Reset the fValues and Qn vector array
+    VarManager::ResetValues(0, VarManager::kNVars);
+    VarManager::ResetQvector();
+    runFillQvector<gkEventFillMap>(event, collision, tracks, muons);
+  }
+
+    // TODO: enable the user to not choose between barrel or muons and just run Q vector sub-task
+    void processQvectorSkimmed(MyEvents::iterator const& event, aod::Collisions const& collision, aod::Tracks const& tracks)
+    {
+      // Reset the fValues and Qn vector array
+      VarManager::ResetValues(0, VarManager::kNVars);
+      VarManager::ResetQvector();
+      runFillQvector<gkEventFillMap>(event, collision, tracks, tracks);
+    }
+    */
+  // TODO: dummy function for the case when no process function is enabled
+  void processDummy(MyEvents&)
+  {
+    // do nothing
+  }
+
+  //PROCESS_SWITCH(AnalysisQvector, processQvectorBarrelSkimmed, "Fill Q vectors for selected events and tracks, for ee flow analyses", false);
+  //PROCESS_SWITCH(AnalysisQvector, processQvectorMuonsSkimmed, "Fill Q vectors for selected events and tracks, for mumu flow analyses", false);
+  //PROCESS_SWITCH(AnalysisQvector, processQvectorSkimmed, "Fill Q vectors for selected events and tracks", false);
+  PROCESS_SWITCH(AnalysisQvector, processDummy, "Dummy function, enabled only if none of the others are enabled", false);
+ 
+};
+
 struct AnalysisDileptonHadron {
   //
   // This task combines dilepton candidates with a track and could be used for example
@@ -889,6 +1099,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     adaptAnalysisTask<AnalysisMuonSelection>(cfgc),
     adaptAnalysisTask<AnalysisEventMixing>(cfgc),
     adaptAnalysisTask<AnalysisSameEventPairing>(cfgc),
+    adaptAnalysisTask<AnalysisQvector>(cfgc),
     adaptAnalysisTask<AnalysisDileptonHadron>(cfgc)};
 }
 
