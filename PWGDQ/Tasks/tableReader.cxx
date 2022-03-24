@@ -821,7 +821,7 @@ struct AnalysisQvector {
 
   std::vector<std::vector<TString>> fTrackHistNames;
   float* fValuesQn;
-/*
+
   void init(o2::framework::InitContext&)
   {
     fEventCut = new AnalysisCompositeCut(true);
@@ -988,16 +988,16 @@ struct AnalysisQvector {
       VarManager::ResetQvector();
       runFillQvector<gkEventFillMap>(event, collision, tracks, tracks);
     }
-    */
+    
   // TODO: dummy function for the case when no process function is enabled
   void processDummy(MyEvents&)
   {
     // do nothing
   }
 
-  //PROCESS_SWITCH(AnalysisQvector, processQvectorBarrelSkimmed, "Fill Q vectors for selected events and tracks, for ee flow analyses", false);
-  //PROCESS_SWITCH(AnalysisQvector, processQvectorMuonsSkimmed, "Fill Q vectors for selected events and tracks, for mumu flow analyses", false);
-  //PROCESS_SWITCH(AnalysisQvector, processQvectorSkimmed, "Fill Q vectors for selected events and tracks", false);
+  PROCESS_SWITCH(AnalysisQvector, processQvectorBarrelSkimmed, "Fill Q vectors for selected events and tracks, for ee flow analyses", false);
+  PROCESS_SWITCH(AnalysisQvector, processQvectorMuonsSkimmed, "Fill Q vectors for selected events and tracks, for mumu flow analyses", false);
+  PROCESS_SWITCH(AnalysisQvector, processQvectorSkimmed, "Fill Q vectors for selected events and tracks", false);
   PROCESS_SWITCH(AnalysisQvector, processDummy, "Dummy function, enabled only if none of the others are enabled", false);
  
 };

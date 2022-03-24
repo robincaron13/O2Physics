@@ -19,7 +19,7 @@
 //#include <vector>
 #include <utility>
 #include "TComplex.h"
-
+#include "Framework/Configurable.h"
 #include "PWGCF/GenericFramework/GFW.h"
 #include "PWGCF/GenericFramework/GFWCumulant.h"
 #include "PWGCF/GenericFramework/FlowContainer.h"
@@ -47,7 +47,6 @@ TComplex Qvector[maxHarmonic][maxPower];    // Q-vector components
 TComplex QvectorPos[maxHarmonic][maxPower]; // Q-vector components with positive eta range
 TComplex QvectorNeg[maxHarmonic][maxPower]; // Q-vector components with negative eta range
 //const float etaLimit = -3.05;
-const float etaLimit = 0.0;
 
 struct RootHistograms {
 
@@ -248,6 +247,19 @@ struct QvectorAnalysis {
     //GFW* fGFW = new GFW();
 //    std::vector<GFW::CorrConfig> corrconfigs;
     TRandom3* fRndm = new TRandom3(0);
+    Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
+    Configurable<std::string> fConfigTrackCuts{"cfgTrackCuts", "", "Comma separated list of barrel track cuts"};
+    Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "", "Comma separated list of muon cuts"};
+    Configurable<bool> fConfigQA{"cfgQA", false, "If true, fill QA histograms"};
+    //Configurable<int> fmaxHarmonic{"maxHarmonic", 3, "Maximum harmonic to be computed"};
+    //Configurable<int> fmaxPower{"maxPower", 1, "Maximum power to be computed"};
+    Configurable<bool> bUseWeights{"UseWeights", false, "If true, fill Q vectors with weights for phi and p_T"};
+    Configurable<bool> bsubEvents{"subEvents", false, "If true, fill use sub-events methods with different detector gaps"};
+    Configurable<float> fetaLimit{"etaLimit", 0.0, "Eta gap separation (e.g ITS=0.0, MFT=-3.05), only if subEvents=true"};
+
+      Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+      Configurable<std::string> ccdbPath{"ccdb-path", "Users/lm", "base path to the ccdb object"};
+      Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
     
   HistogramRegistry registryQ{
     "registryQ",
@@ -280,8 +292,8 @@ struct QvectorAnalysis {
   int nMultPos = 0; // event multiplicity
   int nMultNeg = 0; // event multiplicity
 
-  bool bUseWeights = false; // if using weights
-  bool subEvents = true;
+  //bool bUseWeights = false; // if using weights
+  //bool subEvents = true;
   double dPhi = 0., wPhi = 1., wPhiToPowerP = 1.; // azimuthal angle and corresponding weight
   double rawSP, rawEP = 0.0;
 
@@ -306,12 +318,12 @@ struct QvectorAnalysis {
         for (Int_t p = 0; p < maxPower; p++) {
           //if(bUseWeights){wPhiToPowerP = pow(wPhi,p);}
           Qvector[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
-          if (subEvents) {
-            if (track.eta() > etaLimit) {
+          if (bsubEvents) {
+            if (track.eta() > fetaLimit) {
               QvectorPos[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
               nMultPos++;
             }
-            if (track.eta() < etaLimit) {
+            if (track.eta() < fetaLimit) {
               QvectorNeg[h][p] += TComplex(wPhiToPowerP * TMath::Cos(h * dPhi), wPhiToPowerP * TMath::Sin(h * dPhi));
               nMultNeg++;
             }
@@ -328,7 +340,7 @@ struct QvectorAnalysis {
       double normFactor = nMult; // or normQ;
       TComplex QvectorNormalized = TComplex(Qvector[nHarmonicToStore][0].Re() / normFactor, Qvector[nHarmonicToStore][0].Im() / normFactor);
 
-      if (subEvents) {
+      if (bsubEvents) {
         //double normQPos = TMath::Sqrt(QvectorPos[nHarmonicToStore][0].Re() * QvectorPos[nHarmonicToStore][0].Re() + QvectorPos[nHarmonicToStore][0].Im() * QvectorPos[nHarmonicToStore][0].Im());
         //double normQNeg = TMath::Sqrt(QvectorNeg[nHarmonicToStore][0].Re() * QvectorNeg[nHarmonicToStore][0].Re() + QvectorNeg[nHarmonicToStore][0].Im() * QvectorNeg[nHarmonicToStore][0].Im());
 
