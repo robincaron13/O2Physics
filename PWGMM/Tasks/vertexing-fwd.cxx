@@ -61,7 +61,7 @@ struct vertexingfwd {
   //       return(T);
   ////     }
 
-  void process(aod::AmbiguousTracks const& ambitracks, aod::BCs const&, aod::Collisions const& collisions, aod::Tracks const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
+  void process(aod::AmbiguousTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, aod::Tracks const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
       LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
