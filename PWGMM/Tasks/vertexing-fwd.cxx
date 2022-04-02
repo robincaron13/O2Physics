@@ -31,8 +31,7 @@ using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 struct vertexingfwd {
 
   // Configurable<int> rangeBC{"rangeBC", 10, "Range for collision BCId and BCglobalIndex correspondance"};
-  int rangeBC = 2;
-
+  int rangeBC = 3;
 
   HistogramRegistry registry{
     "registry",
@@ -45,13 +44,32 @@ struct vertexingfwd {
     }                                                                                                                //
   };
 
-
-  void process(aod::AmbiguousTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, aod::Tracks const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
+  void process(aod::AmbiguousTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov> const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
-      //LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
+      if (!ambitrack.bc().size()) {
+        continue;
+      }
+      if (!ambitrack.globalIndex()) {
+        continue;
+      }
+      // LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
+      if (tracks.size() <= 1)
+        continue;
+      if (ambitrack.globalIndex() >= tracks.size()) {
+        continue;
+      }
+      if (ambitrack.globalIndex() < 0) {
+        continue;
+      }
+      // printf("CI %d,  tracks.size() %d \n", ambitrack.globalIndex(), tracks.size());
+
       auto extAmbiTrack = tracks.iteratorAt(ambitrack.globalIndex());
-      //printf("phi = %f\n", extAmbiTrack.phi());
+      if (!extAmbiTrack.phi()) {
+        continue;
+      }
+
+      // printf("phi = %f\n", extAmbiTrack.phi());
 
       for (auto& bc : ambitrack.bc()) {
         // LOGF(info, "  BC %d with global BC %lld", bc.globalIndex(), bc.globalBC());
@@ -61,39 +79,42 @@ struct vertexingfwd {
 
           // printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
           if ((collision.bcId() > (bc.globalIndex() - rangeBC)) && (collision.bcId() < (bc.globalIndex() + rangeBC))) {
-            registry.fill(HIST("EventsNtrkZvtx"), ambitracks.size(), collision.posZ());
+            registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
             registry.fill(HIST("EventSelection"), 2.);
             if (collision.bcId() == bc.globalIndex())
               registry.fill(HIST("EventSelection"), 3.);
 
-            //printf("collision BC ID = %d, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
-            //printf("collision pos Z %f\n", collision.posZ());
+            // printf("collision BC ID = %d, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
+            // printf("collision pos Z %f\n", collision.posZ());
 
-            
             SMatrix5 tpars(extAmbiTrack.x(), extAmbiTrack.y(), extAmbiTrack.phi(), extAmbiTrack.tgl(), extAmbiTrack.signed1Pt());
+            // printf("SMatrix5  extAmbiTrack.signed1Pt() %f\n", extAmbiTrack.signed1Pt());
 
-            //std::vector<double> v1{extAmbiTrack.cXX(), extAmbiTrack.cXY(), extAmbiTrack.cYY(), extAmbiTrack.cPhiX(), extAmbiTrack.cPhiY(),
-            //    extAmbiTrack.cPhiPhi(), extAmbiTrack.cTglX(), extAmbiTrack.cTglY(), extAmbiTrack.cTglPhi(), extAmbiTrack.cTglTgl(),
-            //    extAmbiTrack.c1PtX(), extAmbiTrack.c1PtY(), extAmbiTrack.c1PtPhi(), extAmbiTrack.c1PtTgl(), extAmbiTrack.c1Pt21Pt2()};
-            std::vector<double> v1;
-              
+            std::vector<double> v1{extAmbiTrack.cXX(), extAmbiTrack.cXY(), extAmbiTrack.cYY(), extAmbiTrack.cPhiX(), extAmbiTrack.cPhiY(),
+                                   extAmbiTrack.cPhiPhi(), extAmbiTrack.cTglX(), extAmbiTrack.cTglY(), extAmbiTrack.cTglPhi(), extAmbiTrack.cTglTgl(),
+                                   extAmbiTrack.c1PtX(), extAmbiTrack.c1PtY(), extAmbiTrack.c1PtPhi(), extAmbiTrack.c1PtTgl(), extAmbiTrack.c1Pt21Pt2()};
+            // std::vector<double> v1;
+            // printf("vector<double>  extAmbiTrack.cXX() %f\n", extAmbiTrack.cXX());
+
             SMatrix55 tcovs(v1.begin(), v1.end());
-            //o2::track::TrackParCovFwd pars1{extAmbiTrack.z(), tpars, tcovs, extAmbiTrack.chi2()};
-            double chi2 = 1.0;
-            o2::track::TrackParCovFwd pars1{extAmbiTrack.z(), tpars, tcovs, chi2};
+            o2::track::TrackParCovFwd pars1{extAmbiTrack.z(), tpars, tcovs, extAmbiTrack.chi2()};
+            // double chi2 = 1.0;
+            // o2::track::TrackParCovFwd pars1{extAmbiTrack.z(), tpars, tcovs, chi2};
+            // printf("SMatrix55  extAmbiTrack.chi2() %f\n", extAmbiTrack.chi2());
 
             pars1.propagateToZlinear(collision.posZ());
+            // printf("propagateToZlinear  collision.posZ() %f\n", collision.posZ());
 
-            //auto dca = std::sqrt((pars1.getX()-collision.posX())*(pars1.getX()-collision.posX())+(pars1.getY()-collision.posY())*(pars1.getY()-collision.posY()));
+            // auto dca = std::sqrt((pars1.getX()-collision.posX())*(pars1.getX()-collision.posX())+(pars1.getY()-collision.posY())*(pars1.getY()-collision.posY()));
 
-            const auto dcaX(pars1.getX()-collision.posX());
-            const auto dcaY(pars1.getY()-collision.posY());
-            auto dcaXY = std::sqrt(dcaX*dcaX + dcaY*dcaY);
+            const auto dcaX(pars1.getX() - collision.posX());
+            const auto dcaY(pars1.getY() - collision.posY());
+            auto dcaXY = std::sqrt(dcaX * dcaX + dcaY * dcaY);
+            // printf("dcaXY  %f\n", dcaXY);
 
             registry.fill(HIST("TrackDCAxy"), dcaXY);
             registry.fill(HIST("TrackDCAx"), dcaX);
             registry.fill(HIST("TrackDCAy"), dcaY);
-
           }
         }
       }
