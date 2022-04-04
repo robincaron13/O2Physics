@@ -77,7 +77,7 @@ struct vertexingfwd {
         for (auto& collision : collisions) {
           registry.fill(HIST("EventSelection"), 1.);
 
-          // printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
+          printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
           if ((collision.bcId() > (bc.globalIndex() - rangeBC)) && (collision.bcId() < (bc.globalIndex() + rangeBC))) {
             registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
             registry.fill(HIST("EventSelection"), 2.);
@@ -110,7 +110,7 @@ struct vertexingfwd {
             const auto dcaX(pars1.getX() - collision.posX());
             const auto dcaY(pars1.getY() - collision.posY());
             auto dcaXY = std::sqrt(dcaX * dcaX + dcaY * dcaY);
-            // printf("dcaXY  %f\n", dcaXY);
+            printf("dcaXY  %f\n", dcaXY);
 
             registry.fill(HIST("TrackDCAxy"), dcaXY);
             registry.fill(HIST("TrackDCAx"), dcaX);
