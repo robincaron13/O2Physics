@@ -45,10 +45,11 @@ struct vertexingfwd {
      {"CollisionTime", "; Collisions time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
      {"CollisionTimeRes", "; Resolution of collision time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
      {"Chi2", "; #chi^{2}; counts", {HistType::kTH1F, {{100, 0, 10}}}},
+     {"IndicesCollMC", "; i CollMC; i CollAmbi", {HistType::kTH2F, {{401, -0.5, 1100.5}, {401, -0.5, 1100.5}}}},
      {"NumContrib", "; N_{tr} used for the vertex; counts", {HistType::kTH1F, {{100, 0, 100}}}}} //
   };
 
-  void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov> const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
+  void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov, aod::McFwdTrackLabels> const& tracks, soa::Join<aod::Collisions, aod::McCollisionLabels> const& collisions, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
       vecCollForAmb.clear();
@@ -79,9 +80,9 @@ struct vertexingfwd {
         continue;
       }
       auto particle = extAmbiTrack.mcParticle();
-      int32 mcCollAmbiID = particle.mcCollisionId();
+      int mcCollAmbiID = particle.mcCollisionId();
 
-      // printf("phi = %f\n", extAmbiTrack.phi());
+      printf("phi = %f,  %d \n", extAmbiTrack.phi(), mcCollAmbiID);
 
       for (auto& bc : ambitrack.bc()) {
         // LOGF(info, "  BC %d with global BC %lld", bc.globalIndex(), bc.globalBC());
@@ -90,7 +91,7 @@ struct vertexingfwd {
           registry.fill(HIST("EventSelection"), 1.);
 
           // printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
-          if ( bcs.iteratorAt((collision.bcId()) > (bc.globalBC() - rangeBC)) && ( bcs.iteratorAt((collision.bcId()) < (bc.globalBC() + rangeBC))) {
+          if ((bcs.iteratorAt(collision.bcId()).globalBC() > (bc.globalBC() - rangeBC)) && (bcs.iteratorAt(collision.bcId()).globalBC() < (bc.globalBC() + rangeBC))) {
             registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
             registry.fill(HIST("EventSelection"), 2.);
             // printf("collision BC ID = %d, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
@@ -133,9 +134,14 @@ struct vertexingfwd {
         }   // collisions
 
         int indexMinDCA = std::distance(vecDCACollForAmb.begin(), std::min_element(vecDCACollForAmb.begin(), vecDCACollForAmb.end()));
-        // mcCollAmbiID
         aod::Collision bestcoll = vecCollForAmb[indexMinDCA];
 
+        int indexMCcoll = bestcoll.mcCollision().globalIndex();
+        registry.fill(HIST("IndicesCollMC"), mcCollAmbiID, indexMCcoll);
+        registry.fill(HIST("vecCollSize"), vecCollForAmb.size());
+        if (mcCollAmbiID == indexMCcoll) {
+          printf(" ------> ambitrack correctly associated to collision \n");
+        }
       } // bc of ambitracks
     }   // ambitracks
   }
