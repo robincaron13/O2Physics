@@ -32,21 +32,27 @@ struct vertexingfwd {
 
   // Configurable<int> rangeBC{"rangeBC", 10, "Range for collision BCId and BCglobalIndex correspondance"};
   int rangeBC = 3;
+  std::vector<aod::Collision> vecCollForAmb; // vector for collisions associated to an ambiguous track
+  std::vector<double> vecDCACollForAmb;      // vector for dca collision associated to an ambiguous track
 
   HistogramRegistry registry{
     "registry",
-    {
-      {"EventsNtrkZvtx", "; N_{trk}; Z_{vtx}; events", {HistType::kTH2F, {{301, -0.5, 300.5}, {201, -20.1, 20.1}}}}, //
-      {"EventSelection", "; status; events", {HistType::kTH1F, {{4, 0.5, 4.5}}}},                                    //
-      {"TrackDCAxy", "; DCA_{xy}; counts", {HistType::kTH1F, {{100, -10, 10}}}},                                     //
-      {"TrackDCAx", "; DCA_{x}; counts", {HistType::kTH1F, {{100, -10, 10}}}},                                       //
-      {"TrackDCAy", "; DCA_{y}; counts", {HistType::kTH1F, {{100, -10, 10}}}}                                        //
-    }                                                                                                                //
+    {{"EventsNtrkZvtx", "; N_{trk}; Z_{vtx}; events", {HistType::kTH2F, {{301, -0.5, 300.5}, {201, -20.1, 20.1}}}}, //
+     {"EventSelection", "; status; events", {HistType::kTH1F, {{4, 0.5, 4.5}}}},                                    //
+     {"TrackDCAxy", "; DCA_{xy}; counts", {HistType::kTH1F, {{100, -10, 10}}}},                                     //
+     {"TrackDCAx", "; DCA_{x}; counts", {HistType::kTH1F, {{100, -10, 10}}}},                                       //
+     {"TrackDCAy", "; DCA_{y}; counts", {HistType::kTH1F, {{100, -10, 10}}}},                                       //
+     {"CollisionTime", "; Collisions time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
+     {"CollisionTimeRes", "; Resolution of collision time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
+     {"Chi2", "; #chi^{2}; counts", {HistType::kTH1F, {{100, 0, 10}}}},
+     {"NumContrib", "; N_{tr} used for the vertex; counts", {HistType::kTH1F, {{100, 0, 100}}}}} //
   };
 
-  void process(aod::AmbiguousTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov> const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
+  void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, aod::Collisions const& collisions, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov> const& tracks) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
+      vecCollForAmb.clear();
+      vecDCACollForAmb.clear();
       if (!ambitrack.bc().size()) {
         continue;
       }
@@ -68,6 +74,12 @@ struct vertexingfwd {
       if (!extAmbiTrack.phi()) {
         continue;
       }
+      if (!extAmbiTrack.has_mcParticle()) {
+        LOGF(warning, "No MC particle for ambiguous track, skip...");
+        continue;
+      }
+      auto particle = extAmbiTrack.mcParticle();
+      int32 mcCollAmbiID = particle.mcCollisionId();
 
       // printf("phi = %f\n", extAmbiTrack.phi());
 
@@ -77,13 +89,10 @@ struct vertexingfwd {
         for (auto& collision : collisions) {
           registry.fill(HIST("EventSelection"), 1.);
 
-          printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
-          if ((collision.bcId() > (bc.globalIndex() - rangeBC)) && (collision.bcId() < (bc.globalIndex() + rangeBC))) {
+          // printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
+          if ( bcs.iteratorAt((collision.bcId()) > (bc.globalBC() - rangeBC)) && ( bcs.iteratorAt((collision.bcId()) < (bc.globalBC() + rangeBC))) {
             registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
             registry.fill(HIST("EventSelection"), 2.);
-            if (collision.bcId() == bc.globalIndex())
-              registry.fill(HIST("EventSelection"), 3.);
-
             // printf("collision BC ID = %d, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
             // printf("collision pos Z %f\n", collision.posZ());
 
@@ -105,20 +114,30 @@ struct vertexingfwd {
             pars1.propagateToZlinear(collision.posZ());
             // printf("propagateToZlinear  collision.posZ() %f\n", collision.posZ());
 
-            // auto dca = std::sqrt((pars1.getX()-collision.posX())*(pars1.getX()-collision.posX())+(pars1.getY()-collision.posY())*(pars1.getY()-collision.posY()));
-
             const auto dcaX(pars1.getX() - collision.posX());
             const auto dcaY(pars1.getY() - collision.posY());
             auto dcaXY = std::sqrt(dcaX * dcaX + dcaY * dcaY);
-            printf("dcaXY  %f\n", dcaXY);
+            // printf("dcaXY  %f\n", dcaXY);
 
             registry.fill(HIST("TrackDCAxy"), dcaXY);
             registry.fill(HIST("TrackDCAx"), dcaX);
             registry.fill(HIST("TrackDCAy"), dcaY);
-          }
-        }
-      }
-    }
+            registry.fill(HIST("CollisionTime"), collision.collisionTime());
+            registry.fill(HIST("CollisionTimeRes"), collision.collisionTimeRes());
+            registry.fill(HIST("Chi2"), collision.chi2());
+            registry.fill(HIST("NumContrib"), collision.numContrib());
+
+            vecCollForAmb.emplace_back(collision);
+            vecDCACollForAmb.emplace_back(dcaXY);
+          } // condition BC
+        }   // collisions
+
+        int indexMinDCA = std::distance(vecDCACollForAmb.begin(), std::min_element(vecDCACollForAmb.begin(), vecDCACollForAmb.end()));
+        // mcCollAmbiID
+        aod::Collision bestcoll = vecCollForAmb[indexMinDCA];
+
+      } // bc of ambitracks
+    }   // ambitracks
   }
 
   PROCESS_SWITCH(vertexingfwd, process, "Process ambiguous track DCA", true);
