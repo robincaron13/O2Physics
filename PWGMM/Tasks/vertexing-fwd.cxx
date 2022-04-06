@@ -32,8 +32,8 @@ struct vertexingfwd {
 
   // Configurable<int> rangeBC{"rangeBC", 10, "Range for collision BCId and BCglobalIndex correspondance"};
   int rangeBC = 3;
-  std::vector<aod::Collision> vecCollForAmb; // vector for collisions associated to an ambiguous track
-  std::vector<double> vecDCACollForAmb;      // vector for dca collision associated to an ambiguous track
+  std::vector<int> vecCollForAmb;       // vector for collisions associated to an ambiguous track
+  std::vector<double> vecDCACollForAmb; // vector for dca collision associated to an ambiguous track
 
   HistogramRegistry registry{
     "registry",
@@ -49,7 +49,8 @@ struct vertexingfwd {
      {"NumContrib", "; N_{tr} used for the vertex; counts", {HistType::kTH1F, {{100, 0, 100}}}}} //
   };
 
-  void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov, aod::McFwdTrackLabels> const& tracks, soa::Join<aod::Collisions, aod::McCollisionLabels> const& collisions, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions) // AmbiguousMFTTracks and fwd doesn't work yet
+
+  void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov, aod::McFwdTrackLabels> const& tracks, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const& collisions, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
       vecCollForAmb.clear();
@@ -128,15 +129,14 @@ struct vertexingfwd {
             registry.fill(HIST("Chi2"), collision.chi2());
             registry.fill(HIST("NumContrib"), collision.numContrib());
 
-            vecCollForAmb.emplace_back(collision);
-            vecDCACollForAmb.emplace_back(dcaXY);
+            int mcCollindex = collision.mcCollision().globalIndex();
+            vecCollForAmb.push_back(mcCollindex);
+            vecDCACollForAmb.push_back(dcaXY);
           } // condition BC
         }   // collisions
 
         int indexMinDCA = std::distance(vecDCACollForAmb.begin(), std::min_element(vecDCACollForAmb.begin(), vecDCACollForAmb.end()));
-        aod::Collision bestcoll = vecCollForAmb[indexMinDCA];
-
-        int indexMCcoll = bestcoll.mcCollision().globalIndex();
+        int indexMCcoll = vecCollForAmb[indexMinDCA];
         registry.fill(HIST("IndicesCollMC"), mcCollAmbiID, indexMCcoll);
         registry.fill(HIST("vecCollSize"), vecCollForAmb.size());
         if (mcCollAmbiID == indexMCcoll) {
