@@ -31,7 +31,6 @@ using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 struct vertexingfwd {
 
   // Configurable<int> rangeBC{"rangeBC", 10, "Range for collision BCId and BCglobalIndex correspondance"};
-  int rangeBC = 3;
   std::vector<int> vecCollForAmb;       // vector for collisions associated to an ambiguous track
   std::vector<double> vecDCACollForAmb; // vector for dca collision associated to an ambiguous track
 
@@ -49,7 +48,6 @@ struct vertexingfwd {
      {"NumContrib", "; N_{tr} used for the vertex; counts", {HistType::kTH1F, {{100, 0, 100}}}}} //
   };
 
-
   void process(aod::AmbiguousFwdTracks const& ambitracks, aod::BCs const& bcs, soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov, aod::McFwdTrackLabels> const& tracks, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const& collisions, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions) // AmbiguousMFTTracks and fwd doesn't work yet
   {
     for (auto& ambitrack : ambitracks) {
@@ -61,7 +59,10 @@ struct vertexingfwd {
       if (!ambitrack.globalIndex()) {
         continue;
       }
-      // LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
+      if (!tracks.size()) {
+        continue;
+      }
+      LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
       if (tracks.size() <= 1)
         continue;
       if (ambitrack.globalIndex() >= tracks.size()) {
@@ -70,25 +71,29 @@ struct vertexingfwd {
       if (ambitrack.globalIndex() < 0) {
         continue;
       }
-      // printf("CI %d,  tracks.size() %d \n", ambitrack.globalIndex(), tracks.size());
+      LOGF(info, "CI %d,  tracks.size() %d \n", ambitrack.globalIndex(), tracks.size());
 
-      auto extAmbiTrack = tracks.iteratorAt(ambitrack.globalIndex());
+      // auto extAmbiTrack = tracks.iteratorAt(ambitrack.globalIndex());
+      auto extAmbiTrack = ambitrack.fwdtrack();
       if (!extAmbiTrack.phi()) {
         continue;
       }
-      if (!extAmbiTrack.has_mcParticle()) {
-        LOGF(warning, "No MC particle for ambiguous track, skip...");
-        continue;
-      }
+      // printf("extAmbiTrack %d \n", ambitrack.globalIndex());
+      LOGF(info, "extAmbiTrack %d \n", extAmbiTrack.phi());
+      //      if (!extAmbiTrack.has_mcParticle()) {
+      //        LOGF(warning, "No MC particle for ambiguous track, skip...");
+      //        continue;
+      //      }
       auto particle = extAmbiTrack.mcParticle();
       int mcCollAmbiID = particle.mcCollisionId();
 
-      printf("phi = %f,  %d \n", extAmbiTrack.phi(), mcCollAmbiID);
+      // printf("phi = %f, mcCollAmbiID  %d \n", extAmbiTrack.phi(), mcCollAmbiID);
 
       for (auto& bc : ambitrack.bc()) {
         // LOGF(info, "  BC %d with global BC %lld", bc.globalIndex(), bc.globalBC());
 
         for (auto& collision : collisions) {
+          int rangeBC = 3; // retrive the global bc for the indices given in the bcslice vector
           registry.fill(HIST("EventSelection"), 1.);
 
           // printf("collision BC ID = %lld, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
@@ -140,7 +145,7 @@ struct vertexingfwd {
         registry.fill(HIST("IndicesCollMC"), mcCollAmbiID, indexMCcoll);
         registry.fill(HIST("vecCollSize"), vecCollForAmb.size());
         if (mcCollAmbiID == indexMCcoll) {
-          printf(" ------> ambitrack correctly associated to collision \n");
+          LOGF(info, " ------> ambitrack correctly associated to collision \n");
         }
       } // bc of ambitracks
     }   // ambitracks
