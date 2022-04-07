@@ -72,20 +72,37 @@ struct vertexingfwd {
         continue;
       }
       LOGF(info, "CI %d,  tracks.size() %d \n", ambitrack.globalIndex(), tracks.size());
-
-      // auto extAmbiTrack = tracks.iteratorAt(ambitrack.globalIndex());
-      auto extAmbiTrack = ambitrack.fwdtrack();
-      if (!extAmbiTrack.phi()) {
-        continue;
-      }
+      int mcCollAmbiID = -1;
+      soa::Join<o2::aod::FwdTracks, o2::aod::FwdTracksCov, aod::McFwdTrackLabels>::iterator extAmbiTrack ;
+      //auto extAmbiTrack = tracks.iteratorAt(ambitrack.globalIndex());
+      auto extAmbiTrackid = ambitrack.fwdtrackId();
+        for (auto& track : tracks) {
+            LOGF(info, "  ---- >> %d  -----  %d \n", extAmbiTrackid, track.globalIndex() );
+            if(extAmbiTrackid == track.globalIndex() ){
+                LOGF(info, "  -----  %d \n", track.globalIndex() );
+                  if (!track.has_mcParticle()) {
+                    LOGF(warning, "No MC particle for ambiguous track, skip...");
+                    continue;
+                  }
+                auto particle = track.mcParticle();
+                mcCollAmbiID = particle.mcCollisionId();
+                LOGF(info, "mcCollAmbiID %d \n", mcCollAmbiID);
+                extAmbiTrack = track;
+                break;
+            }
+        }
+        //if( track.globalIndex() == (tracks.size()-1) ) continue;
+//      if (!extAmbiTrack.phi()) {
+//        continue;
+//      }
       // printf("extAmbiTrack %d \n", ambitrack.globalIndex());
-      LOGF(info, "extAmbiTrack %d \n", extAmbiTrack.phi());
+      //LOGF(info, "extAmbiTrack %d \n", extAmbiTrack.phi());
       //      if (!extAmbiTrack.has_mcParticle()) {
       //        LOGF(warning, "No MC particle for ambiguous track, skip...");
       //        continue;
       //      }
-      auto particle = extAmbiTrack.mcParticle();
-      int mcCollAmbiID = particle.mcCollisionId();
+//      auto particle = extAmbiTrack.mcParticle();
+//      int mcCollAmbiID = particle.mcCollisionId();
 
       // printf("phi = %f, mcCollAmbiID  %d \n", extAmbiTrack.phi(), mcCollAmbiID);
 
@@ -106,10 +123,10 @@ struct vertexingfwd {
             SMatrix5 tpars(extAmbiTrack.x(), extAmbiTrack.y(), extAmbiTrack.phi(), extAmbiTrack.tgl(), extAmbiTrack.signed1Pt());
             // printf("SMatrix5  extAmbiTrack.signed1Pt() %f\n", extAmbiTrack.signed1Pt());
 
-            std::vector<double> v1{extAmbiTrack.cXX(), extAmbiTrack.cXY(), extAmbiTrack.cYY(), extAmbiTrack.cPhiX(), extAmbiTrack.cPhiY(),
-                                   extAmbiTrack.cPhiPhi(), extAmbiTrack.cTglX(), extAmbiTrack.cTglY(), extAmbiTrack.cTglPhi(), extAmbiTrack.cTglTgl(),
-                                   extAmbiTrack.c1PtX(), extAmbiTrack.c1PtY(), extAmbiTrack.c1PtPhi(), extAmbiTrack.c1PtTgl(), extAmbiTrack.c1Pt21Pt2()};
-            // std::vector<double> v1;
+//            std::vector<double> v1{extAmbiTrack.cXX(), extAmbiTrack.cXY(), extAmbiTrack.cYY(), extAmbiTrack.cPhiX(), extAmbiTrack.cPhiY(),
+//                                   extAmbiTrack.cPhiPhi(), extAmbiTrack.cTglX(), extAmbiTrack.cTglY(), extAmbiTrack.cTglPhi(), extAmbiTrack.cTglTgl(),
+//                                   extAmbiTrack.c1PtX(), extAmbiTrack.c1PtY(), extAmbiTrack.c1PtPhi(), extAmbiTrack.c1PtTgl(), extAmbiTrack.c1Pt21Pt2()};
+            std::vector<double> v1;
             // printf("vector<double>  extAmbiTrack.cXX() %f\n", extAmbiTrack.cXX());
 
             SMatrix55 tcovs(v1.begin(), v1.end());
