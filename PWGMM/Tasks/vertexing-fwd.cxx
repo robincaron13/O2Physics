@@ -45,8 +45,8 @@ struct vertexingfwd {
      {"CollisionTime", "; Collisions time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
      {"CollisionTimeRes", "; Resolution of collision time (ns); counts", {HistType::kTH1F, {{100, 0, 0.1}}}},
      {"Chi2", "; #chi^{2}; counts", {HistType::kTH1F, {{100, 0, 10}}}},
-     {"vecCollSize", "; coll size", {HistType::kTH1F, {{100, 0, 100}}}},
-     {"IndicesCollMC", "; i CollMC; i CollAmbi", {HistType::kTH2F, {{401, -0.5, 1100.5}, {401, -0.5, 1100.5}}}},
+     {"vecCollSize", "; Rec collision vector size", {HistType::kTH1F, {{100, 0, 100}}}},
+     {"IndicesCollMC", "; Rec Min DCA Ambiguous Track Collision ID; Gen Ambiguous Track Collision ID", {HistType::kTH2F, {{401, -0.5, 1100.5}, {401, -0.5, 1100.5}}}},
      {"NumContrib", "; N_{tr} used for the vertex; counts", {HistType::kTH1F, {{100, 0, 100}}}}} //
   };
 
@@ -56,6 +56,7 @@ struct vertexingfwd {
       vecCollForAmb.clear();
       vecDCACollForAmb.clear();
       vecAmbTrack.clear();
+
       if (!ambitrack.bc().size()) {
         continue;
       }
@@ -65,7 +66,6 @@ struct vertexingfwd {
       if (!tracks.size()) {
         continue;
       }
-      LOGF(info, "------------------------------------ We look at ambitrack %d which has %d possible BCs", ambitrack.globalIndex(), ambitrack.bc().size());
       if (tracks.size() <= 1)
         continue;
       if (ambitrack.globalIndex() >= tracks.size()) {
@@ -122,17 +122,13 @@ struct vertexingfwd {
         // LOGF(info, "       5) BC %d with global BC %lld", bc.globalIndex(), bc.globalBC());
 
         for (auto& collision : collisions) {
-          int rangeBC = 100; // retrive the global bc for the indices given in the bcslice vector
+          int rangeBC = ambitrack.bcIds()[1] - ambitrack.bcIds()[0]; // retrive the global bc for the indices given in the bcslice vector
           registry.fill(HIST("EventSelection"), 1.);
-
           if ((collision.bc().globalBC() > (bc.globalBC() - rangeBC)) && (collision.bc().globalBC() < (bc.globalBC() + rangeBC))) {
-            // registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
-            // registry.fill(HIST("EventSelection"), 2.);
-            //  printf("collision BC ID = %d, bc.globalIndex() %lld\n", collision.bcId(), bc.globalIndex());
-            // LOGF(info,"collision pos Z %f\n", collision.posZ());
+            registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), collision.posZ());
+            registry.fill(HIST("EventSelection"), 2.);
 
             SMatrix5 tpars(vecAmbTrack[0], vecAmbTrack[1], vecAmbTrack[2], vecAmbTrack[3], vecAmbTrack[4]);
-            // printf("SMatrix5  extAmbiTrack.signed1Pt() %f\n", extAmbiTrack.signed1Pt());
             //            std::vector<double> v1{extAmbiTrack.cXX(), extAmbiTrack.cXY(), extAmbiTrack.cYY(), extAmbiTrack.cPhiX(), extAmbiTrack.cPhiY(),
             //                                   extAmbiTrack.cPhiPhi(), extAmbiTrack.cTglX(), extAmbiTrack.cTglY(), extAmbiTrack.cTglPhi(), extAmbiTrack.cTglTgl(),
             //                                   extAmbiTrack.c1PtX(), extAmbiTrack.c1PtY(), extAmbiTrack.c1PtPhi(), extAmbiTrack.c1PtTgl(), extAmbiTrack.c1Pt21Pt2()};
@@ -144,9 +140,7 @@ struct vertexingfwd {
             o2::track::TrackParCovFwd pars1{vecAmbTrack[5], tpars, tcovs, vecAmbTrack[6]};
             // double chi2 = 1.0;
             // o2::track::TrackParCovFwd pars1{extAmbiTrack.z(), tpars, tcovs, chi2};
-            // printf("SMatrix55  extAmbiTrack.chi2() %f\n", extAmbiTrack.chi2());
             pars1.propagateToZlinear(collision.posZ());
-            // printf("propagateToZlinear  collision.posZ() %f\n", collision.posZ());
             const auto dcaX(pars1.getX() - collision.posX());
             const auto dcaY(pars1.getY() - collision.posY());
             auto dcaXY = std::sqrt(dcaX * dcaX + dcaY * dcaY);
