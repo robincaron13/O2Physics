@@ -446,12 +446,12 @@ struct LoopOverMcMatched {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    // adaptAnalysisTask<RootHistograms>(cfgc),
-    // adaptAnalysisTask<OutputObjects>(cfgc),
-    // adaptAnalysisTask<OutputObjSet>(cfgc),
-    // adaptAnalysisTask<HistRegistry>(cfgc),
-    // adaptAnalysisTask<LoopOverMcMatched>(cfgc),
-    // adaptAnalysisTask<MultiplicityEventTrackSelectionMFT>(cfgc),
+    //adaptAnalysisTask<RootHistograms>(cfgc),
+    //adaptAnalysisTask<OutputObjects>(cfgc),
+    adaptAnalysisTask<OutputObjSet>(cfgc),
+    adaptAnalysisTask<HistRegistry>(cfgc),
+    //adaptAnalysisTask<LoopOverMcMatched>(cfgc),
+    //adaptAnalysisTask<MultiplicityEventTrackSelectionMFT>(cfgc),
     adaptAnalysisTask<IterateMuons>(cfgc),
     adaptAnalysisTask<QvectorAnalysis>(cfgc)};
 }
