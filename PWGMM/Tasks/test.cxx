@@ -353,7 +353,7 @@ struct QvectorAnalysis {
       registryQ.get<TProfile>(HIST("Mult_h2QnX"))->Fill(nMult, QvectorNormalized.Re());
       registryQ.get<TProfile>(HIST("Mult_h2QnY"))->Fill(nMult, QvectorNormalized.Im());
 
-      registryQ.get<TH2>(HIST("Mult_resGap"))->Fill(nMult, resGap);
+      registryQ.get<TProfile>(HIST("Mult_resGap"))->Fill(nMult, resGap);
 
       //            for (auto& track : tracks) {
       //                dPhi = track.phi();
