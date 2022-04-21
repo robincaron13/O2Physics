@@ -270,15 +270,19 @@ struct QvectorAnalysis {
      {"Mult_Qn0Qn2", "; N_{ch}; raw Q_{n,A}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"Mult_Qn1Qn2", "; N_{ch}; raw Q_{n,B}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"pT_h2VnSP", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
-     {"pT_h2VnEP", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}}
+     {"pT_h2VnSP_0", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnSP_4", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnEP", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnEP_0", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnEP_4", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}}
 
     }};
   int nMult = 0;    // event multiplicity
   int nMultPos = 0; // event multiplicity positive eta gap
   int nMultNeg = 0; // event multiplicity negative eta gap
 
-  double dPhi = 0., wPhi = 1., wPhiToPowerP = 1.;    // azimuthal angle and corresponding weight
-  double vnrawSP = 0.0, vnrawEP = 0.0, resGap = 0.0; // flow coefficients and resolution
+  double dPhi = 0., dpT = 0., deta = 0., wPhi = 1., wPhiToPowerP = 1.; // azimuthal angle, pT, eta and corresponding weight
+  double vnrawSP = 0.0, vnrawEP = 0.0, resGap = 0.0;                   // flow coefficients and resolution
 
   void process(aod::Collisions::iterator const& collision, MyTracks const& tracks, MyTracksSelected const& muons)
   {
@@ -322,7 +326,7 @@ struct QvectorAnalysis {
       double normFactor = nMult; // or normQ;
       TComplex QvectorNormalized = TComplex(Qvector[nHarm][0].Re() / normFactor, Qvector[nHarm][0].Im() / normFactor);
 
-      if (bsubEvents && (nMultPos>0 && nMultNeg>0) ) {
+      if (bsubEvents && (nMultPos > 0 && nMultNeg > 0)) {
         // double normQPos = TMath::Sqrt(QvectorPos[nHarm][0].Re() * QvectorPos[nHarm][0].Re() + QvectorPos[nHarm][0].Im() * QvectorPos[nHarm][0].Im());
         // double normQNeg = TMath::Sqrt(QvectorNeg[nHarm][0].Re() * QvectorNeg[nHarm][0].Re() + QvectorNeg[nHarm][0].Im() * QvectorNeg[nHarm][0].Im());
 
@@ -374,22 +378,26 @@ struct QvectorAnalysis {
 
       for (auto& muon : muons) {
         dPhi = muon.phi();
-        vnrawSP = (TMath::Cos(nHarm * dPhi) * QvectorNormalized.Re() + TMath::Sin(nHarm * dPhi) * QvectorNormalized.Im()) / nMult;
+        dpT = muon.pt();
+        deta = muon.eta();
+        vnrawSP = TMath::Cos(nHarm * dPhi) * QvectorNormalized.Re() + TMath::Sin(nHarm * dPhi) * QvectorNormalized.Im();
         vnrawEP = TMath::Cos(nHarm * (dPhi - rawPsin));
 
+        registryQ.get<TProfile>(HIST("pT_h2VnSP"))->Fill(dpT, vnrawSP);
+        registryQ.get<TProfile>(HIST("pT_h2VnEP"))->Fill(dpT, vnrawEP);
+
         if (muon.trackType() == 0) {
-          registryQ.get<TH1>(HIST("hpT_0"))->Fill(muon.pt());
-          registryQ.get<TH1>(HIST("htracketa_0"))->Fill(muon.pt());
+          registryQ.get<TH1>(HIST("hpT_0"))->Fill(dpT);
+          registryQ.get<TH1>(HIST("htracketa_0"))->Fill(deta);
+          registryQ.get<TProfile>(HIST("pT_h2VnSP_0"))->Fill(dpT, vnrawSP);
+          registryQ.get<TProfile>(HIST("pT_h2VnEP_0"))->Fill(dpT, vnrawEP);
         }
         if (muon.trackType() == 4) {
-          registryQ.get<TH1>(HIST("hpT_4"))->Fill(muon.pt());
-          registryQ.get<TH1>(HIST("htracketa_4"))->Fill(muon.pt());
+          registryQ.get<TH1>(HIST("hpT_4"))->Fill(dpT);
+          registryQ.get<TH1>(HIST("htracketa_4"))->Fill(deta);
+          registryQ.get<TProfile>(HIST("pT_h2VnSP_4"))->Fill(dpT, vnrawSP);
+          registryQ.get<TProfile>(HIST("pT_h2VnEP_4"))->Fill(dpT, vnrawEP);
         }
-
-        if (vnrawSP)
-          registryQ.get<TProfile>(HIST("pT_h2VnSP"))->Fill(muon.pt(), vnrawSP);
-        if (vnrawEP)
-          registryQ.get<TProfile>(HIST("pT_h2VnEP"))->Fill(muon.pt(), vnrawEP);
 
       } // loop over tracks
     }
