@@ -250,7 +250,7 @@ struct QvectorAnalysis {
 
   HistogramRegistry registryQ{
     "registryQ",
-    {{"hmult", "; N_{ch}", {HistType::kTH1F, {{400, 0, 1000}}}},
+    {{"hmult", "; N_{ch}", {HistType::kTH1F, {{100, 0, 200}}}},
      {"hpT", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
      {"hpT_0", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
      {"hpT_4", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
@@ -260,17 +260,17 @@ struct QvectorAnalysis {
      {"h2QnX", "; Q_{n,x}", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"h2QnY", "; Q_{n,y}", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"h2Psin", "; raw #Psi_{n}", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"Zvtx_h2QnX", ";  z_{vtx}; raw Q_{n,x}", {HistType::kTProfile, {{80, -40.0f, 40.0f}}}},
-     {"Zvtx_h2QnY", ";  z_{vtx}; raw Q_{n,y}", {HistType::kTProfile, {{80, -40.0f, 40.0f}}}},
-     {"Mult_h2QnX", "; N_{ch}; raw Q_{n,x}", {HistType::kTProfile, {{100, -1, 99}}}},
-     {"Mult_h2QnY", "; N_{ch}; raw Q_{n,y}", {HistType::kTProfile, {{100, -1, 99}}}},
-     {"Mult_resGap", "; N_{ch}; resGap", {HistType::kTProfile, {{100, -0.5f, 99.5f}}}},
-     {"h2Vn", "; raw v_{n}", {HistType::kTH1F, {{100, -3., 3.}}}},
+     {"Zvtx_h2QnX", ";  z_{vtx}; raw Q_{n,x}", {HistType::kTProfile, {{40, -20.0f, 20.0f}}}},
+     {"Zvtx_h2QnY", ";  z_{vtx}; raw Q_{n,y}", {HistType::kTProfile, {{40, -20.0f, 20.0f}}}},
+     {"Mult_h2QnX", "; N_{ch}; raw Q_{n,x}", {HistType::kTProfile, {{20, -1, 99}}}},
+     {"Mult_h2QnY", "; N_{ch}; raw Q_{n,y}", {HistType::kTProfile, {{20, -1, 99}}}},
+     {"Mult_resGap", "; N_{ch}; resGap", {HistType::kTProfile, {{20, -0.5f, 99.5f}}}},
+     {"h2Vn", "; raw v_{n}", {HistType::kTH1F, {{50, -3., 3.}}}},
      {"Mult_Qn0Qn1", "; N_{ch}; raw Q_{n,A}Q_{n,B}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"Mult_Qn0Qn2", "; N_{ch}; raw Q_{n,A}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"Mult_Qn1Qn2", "; N_{ch}; raw Q_{n,B}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
-     {"pT_h2VnSP", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{100, -0.1, 9.9}}}},
-     {"pT_h2VnEP", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{100, -0.1, 9.9}}}}
+     {"pT_h2VnSP", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnEP", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}}
 
     }};
   int nMult = 0;    // event multiplicity
@@ -322,7 +322,7 @@ struct QvectorAnalysis {
       double normFactor = nMult; // or normQ;
       TComplex QvectorNormalized = TComplex(Qvector[nHarm][0].Re() / normFactor, Qvector[nHarm][0].Im() / normFactor);
 
-      if (bsubEvents) {
+      if (bsubEvents && (nMultPos>0 && nMultNeg>0) ) {
         // double normQPos = TMath::Sqrt(QvectorPos[nHarm][0].Re() * QvectorPos[nHarm][0].Re() + QvectorPos[nHarm][0].Im() * QvectorPos[nHarm][0].Im());
         // double normQNeg = TMath::Sqrt(QvectorNeg[nHarm][0].Re() * QvectorNeg[nHarm][0].Re() + QvectorNeg[nHarm][0].Im() * QvectorNeg[nHarm][0].Im());
 
