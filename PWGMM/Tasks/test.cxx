@@ -45,7 +45,6 @@ const Int_t maxPower = 1;
 TComplex Qvector[maxHarmonic][maxPower];    // Q-vector components
 TComplex QvectorPos[maxHarmonic][maxPower]; // Q-vector components with positive eta range
 TComplex QvectorNeg[maxHarmonic][maxPower]; // Q-vector components with negative eta range
-// const float etaLimit = -3.05;
 
 struct RootHistograms {
 
@@ -253,9 +252,11 @@ struct QvectorAnalysis {
     {{"hmult", "; N_{ch}", {HistType::kTH1F, {{100, 0, 200}}}},
      {"hpT", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
      {"hpT_0", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
+     {"hpT_2", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
      {"hpT_4", "; p_{T}", {HistType::kTH1F, {{100, 0, 20}}}},
      {"htracketa", "; #eta", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"htracketa_0", "; #eta", {HistType::kTH1F, {{100, -5., 5.}}}},
+     {"htracketa_2", "; #eta", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"htracketa_4", "; #eta", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"h2QnX", "; Q_{n,x}", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"h2QnY", "; Q_{n,y}", {HistType::kTH1F, {{100, -2., 2.}}}},
@@ -265,15 +266,17 @@ struct QvectorAnalysis {
      {"Mult_h2QnX", "; N_{ch}; raw Q_{n,x}", {HistType::kTProfile, {{20, -1, 99}}}},
      {"Mult_h2QnY", "; N_{ch}; raw Q_{n,y}", {HistType::kTProfile, {{20, -1, 99}}}},
      {"Mult_resGap", "; N_{ch}; resGap", {HistType::kTProfile, {{20, -0.5f, 99.5f}}}},
-     {"h2Vn", "; raw v_{n}", {HistType::kTH1F, {{50, -3., 3.}}}},
+     {"h2Vn", "; raw v_{n}", {HistType::kTH1F, {{100, -1., 1.}}}},
      {"Mult_Qn0Qn1", "; N_{ch}; raw Q_{n,A}Q_{n,B}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"Mult_Qn0Qn2", "; N_{ch}; raw Q_{n,A}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"Mult_Qn1Qn2", "; N_{ch}; raw Q_{n,B}Q_{n,C}^{*}", {HistType::kTProfile, {{100, -1, 99}}}},
      {"pT_h2VnSP", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
      {"pT_h2VnSP_0", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnSP_2", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
      {"pT_h2VnSP_4", "; p_{T}; raw v_{n} {SP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
      {"pT_h2VnEP", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
      {"pT_h2VnEP_0", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
+     {"pT_h2VnEP_2", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}},
      {"pT_h2VnEP_4", "; p_{T}; raw v_{n} {EP}", {HistType::kTProfile, {{20, -0.1, 9.9}}}}
 
     }};
@@ -387,13 +390,19 @@ struct QvectorAnalysis {
         registryQ.get<TProfile>(HIST("pT_h2VnEP"))->Fill(dpT, vnrawEP);
         registryQ.get<TH1>(HIST("h2Vn"))->Fill(vnrawSP);
 
-        if (muon.trackType() == 0) {
+        if (muon.trackType() == 0) { // MFT-MCH-MID
           registryQ.get<TH1>(HIST("hpT_0"))->Fill(dpT);
           registryQ.get<TH1>(HIST("htracketa_0"))->Fill(deta);
           registryQ.get<TProfile>(HIST("pT_h2VnSP_0"))->Fill(dpT, vnrawSP);
           registryQ.get<TProfile>(HIST("pT_h2VnEP_0"))->Fill(dpT, vnrawEP);
         }
-        if (muon.trackType() == 4) {
+        if (muon.trackType() == 2) { // MFT-MCH-MID
+          registryQ.get<TH1>(HIST("hpT_2"))->Fill(dpT);
+          registryQ.get<TH1>(HIST("htracketa_2"))->Fill(deta);
+          registryQ.get<TProfile>(HIST("pT_h2VnSP_2"))->Fill(dpT, vnrawSP);
+          registryQ.get<TProfile>(HIST("pT_h2VnEP_2"))->Fill(dpT, vnrawEP);
+        }
+        if (muon.trackType() == 4) { // MCH
           registryQ.get<TH1>(HIST("hpT_4"))->Fill(dpT);
           registryQ.get<TH1>(HIST("htracketa_4"))->Fill(deta);
           registryQ.get<TProfile>(HIST("pT_h2VnSP_4"))->Fill(dpT, vnrawSP);
