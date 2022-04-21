@@ -367,7 +367,7 @@ struct QvectorAnalysis {
       //                rawSP =  (TMath::Cos(nHarm*dPhi)*QvectorNormalized.Re() + TMath::Sin(nHarm*dPhi)*QvectorNormalized.Im()) ;
       //                rawEP =  TMath::Cos(nHarm*(dPhi-rawPsin) ) ;
       //
-      //                if(rawSP) registryQ.get<TH1>(HIST("h2Vn"))->Fill(rawSP);
+      //
       //                if(normQ0 && normQ1) registryQ.get<TProfile>(HIST("Mult_Qn0Qn1"))->Fill(nMult, normQ0*normQ1 );
       //                if(normQ0 && normQ2) registryQ.get<TProfile>(HIST("Mult_Qn0Qn2"))->Fill(nMult, normQ0*normQ2 );
       //                if(normQ1 && normQ2) registryQ.get<TProfile>(HIST("Mult_Qn1Qn2"))->Fill(nMult, normQ1*normQ2 );
@@ -385,6 +385,7 @@ struct QvectorAnalysis {
 
         registryQ.get<TProfile>(HIST("pT_h2VnSP"))->Fill(dpT, vnrawSP);
         registryQ.get<TProfile>(HIST("pT_h2VnEP"))->Fill(dpT, vnrawEP);
+        registryQ.get<TH1>(HIST("h2Vn"))->Fill(vnrawSP);
 
         if (muon.trackType() == 0) {
           registryQ.get<TH1>(HIST("hpT_0"))->Fill(dpT);
