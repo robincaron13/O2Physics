@@ -164,26 +164,26 @@ struct vertexingfwd {
       if (vecCollForAmb.size() == 0) { // do not use the vector with no collisions
         continue;
       }
-    registry.fill(HIST("DeltaZvtxBest"), vecZposCollForAmb[indexMinDCA] - zVtxMCAmbi);
+      registry.fill(HIST("DeltaZvtxBest"), vecZposCollForAmb[indexMinDCA] - zVtxMCAmbi);
 
-    //      for (auto& dca : vecDCACollForAmb) {
-    //        if (dca != vecDCACollForAmb[indexMinDCA]) {
-    //          registry.fill(HIST("DeltaDCAminNcoll"), vecCollForAmb.size(), std::abs(vecDCACollForAmb[indexMinDCA] - dca));
-    //          registry.fill(HIST("TracksDCAXYOther"), dca);
-    //        }
-    //      }
+      //      for (auto& dca : vecDCACollForAmb) {
+      //        if (dca != vecDCACollForAmb[indexMinDCA]) {
+      //          registry.fill(HIST("DeltaDCAminNcoll"), vecCollForAmb.size(), std::abs(vecDCACollForAmb[indexMinDCA] - dca));
+      //          registry.fill(HIST("TracksDCAXYOther"), dca);
+      //        }
+      //      }
 
-    if (mcCollAmbiID == indexMCcoll) {
-      value = 1.0;
-      // LOGF(info, " --> Ambitrack correctly associated to collision, dca= %f", vecDCACollForAmb[indexMinDCA]);
-    }
-    registry.fill(HIST("TracksDCAXYBest"), vecDCACollForAmb[indexMinDCA]);
-    registry.fill(HIST("CorrectMatch"), value);
-    registry.fill(HIST("EfficiencyZvtx"), zVtxMCAmbi, value);
-    registry.fill(HIST("CorrectMatch"), 2.0); // Counting for amibuous track with N collisions > 0
-    if (value == 0.0) {
-      registry.fill(HIST("TracksDCAXYBestFalse"), vecDCACollForAmb[indexMinDCA]); // Incorrect association with min DCA
-    }
+      if (mcCollAmbiID == indexMCcoll) {
+        value = 1.0;
+        // LOGF(info, " --> Ambitrack correctly associated to collision, dca= %f", vecDCACollForAmb[indexMinDCA]);
+      }
+      registry.fill(HIST("TracksDCAXYBest"), vecDCACollForAmb[indexMinDCA]);
+      registry.fill(HIST("CorrectMatch"), value);
+      registry.fill(HIST("EfficiencyZvtx"), zVtxMCAmbi, value);
+      registry.fill(HIST("CorrectMatch"), 2.0); // Counting for amibuous track with N collisions > 0
+      if (value == 0.0) {
+        registry.fill(HIST("TracksDCAXYBestFalse"), vecDCACollForAmb[indexMinDCA]); // Incorrect association with min DCA
+      }
 
     } // ambitracks loop
   }
