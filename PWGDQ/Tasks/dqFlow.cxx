@@ -371,7 +371,7 @@ struct AnalysisQvector {
     runFillQvector<gkEventFillMap, gkTrackFillMap>(collisions, bcs, tracks);
   }
 
-    // Dummy function for the case when no process function is enabled
+  // Dummy function for the case when no process function is enabled
   //    void processDummy(MyEvents&)
   //    {
   //      // do nothing
