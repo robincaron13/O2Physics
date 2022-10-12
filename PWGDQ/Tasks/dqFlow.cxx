@@ -318,7 +318,7 @@ struct AnalysisQvector {
       Q3vecFull = gfwCumFull.Vec(3, fConfigNPow);
     }
 
-      // Fill the VarManager::fgValues with the Q vector quantities
+    // Fill the VarManager::fgValues with the Q vector quantities
     VarManager::FillQVectorFromGFW(collision, Q2vecFull, Q2vecN, Q2vecP, Q3vecFull, Q3vecN, Q3vecP, nentriesFull, nentriesN, nentriesP);
 
     if (fConfigQA) {
