@@ -26,6 +26,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include <Framework/HistogramRegistry.h>
 #include "Framework/ASoAHelpers.h"
 #include "PWGDQ/DataModel/ReducedInfoTables.h"
 #include "PWGDQ/Core/VarManager.h"
@@ -96,6 +97,8 @@ struct DQEventQvector {
   Service<ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> fConfigEfficiency{"ccdb-path-efficiency", "Users/r/rcaron/efficiency", "CCDB path to efficiency object"};
   Configurable<std::string> fConfigAcceptance{"ccdb-path-acceptance", "", "CCDB path to acceptance or GFWWeights object"};
+  Configurable<std::string> fConfigWeights{"ccdb-path-weights", "", "CCDB path to Q correction object"};
+
   Configurable<std::string> fConfigURL{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
   Configurable<int64_t> fConfigNoLaterThan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
 
@@ -110,6 +113,11 @@ struct DQEventQvector {
   struct Config {
     TH1D* mEfficiency = nullptr;
     GFWWeights* mAcceptance = nullptr;
+    TList* mListCalib = nullptr;
+    TProfile* ProfileQxnA = nullptr;
+    TProfile* ProfileQxnC = nullptr;
+    TProfile* ProfileQynA = nullptr;
+    TProfile* ProfileQynC = nullptr;
   } cfg;
 
   // Define output
@@ -123,6 +131,13 @@ struct DQEventQvector {
   std::vector<GFW::CorrConfig> corrconfigs;
   TRandom3* fRndm = new TRandom3(0);
 
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+  AxisSpec axisPtBins{{0., 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.25, 2.5, 2.75, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 8.0, 10., 13., 16., 20.}, "p_{T} (GeV/c)"};
+  AxisSpec axisCentBins{{0, 5., 10., 20., 30., 40., 50., 60., 70., 80.}, "centrality percentile"};
+  AxisSpec axisEtaBins{{0., 0.2, 0.3, 0.4, 0.5, 0.6}, "#eta "};
+  AxisSpec axisPhiBins{{0., 0.2, 0.3, 0.4, 0.5, 0.6}, "#phi "};
+
+  Int_t nHarm = 2;
   // Initialize CCDB, efficiencies and acceptances from CCDB, histograms, GFW, FlowContainer
   void init(o2::framework::InitContext&)
   {
@@ -163,6 +178,20 @@ struct DQEventQvector {
       cfg.mAcceptance = ccdb->getForTimeStamp<GFWWeights>(fConfigAcceptance.value, fConfigNoLaterThan.value);
     }
 
+    // Global acceptance or GFWeights to correct for NUA in the track loop
+    if (fConfigWeights.value.empty() == false) {
+      // cfg.mListCalib = ccdb->getForTimeStamp<TList>(fConfigWeights.value, fConfigNoLaterThan.value);
+      std::string fullpathQxnA = fConfigWeights.value + "/QxnA";
+      std::string fullpathQxnC = fConfigWeights.value + "/QxnC";
+      std::string fullpathQynA = fConfigWeights.value + "/QynA";
+      std::string fullpathQynC = fConfigWeights.value + "/QynC";
+
+      cfg.ProfileQxnA = ccdb->getForTimeStamp<TProfile>(fullpathQxnA, fConfigNoLaterThan.value);
+      cfg.ProfileQxnC = ccdb->getForTimeStamp<TProfile>(fullpathQxnC, fConfigNoLaterThan.value);
+      cfg.ProfileQynA = ccdb->getForTimeStamp<TProfile>(fullpathQynA, fConfigNoLaterThan.value);
+      cfg.ProfileQynC = ccdb->getForTimeStamp<TProfile>(fullpathQynC, fConfigNoLaterThan.value);
+    }
+
     // Reference flow
     TObjArray* oba = new TObjArray();
     oba->Add(new TNamed("ChGap22", "ChGap22"));   // for gap (|eta|>0.4) case
@@ -186,6 +215,42 @@ struct DQEventQvector {
     corrconfigs.push_back(fGFW->GetCorrelatorConfig("refP {3} refN {-3}", "ChGap32", kFALSE));
 
     fGFW->CreateRegions();
+    histos.add("res", "centrality percentile vs Resolution", kTProfile, {axisCentBins});
+    histos.add("QxnA", "centrality percentile vs #LT Q_{x}^{nA} #GT", kTProfile, {axisCentBins});
+    histos.add("QxnC", "centrality percentile vs #LT Q_{x}^{nC} #GT", kTProfile, {axisCentBins});
+    histos.add("QynA", "centrality percentile vs #LT Q_{y}^{nA} #GT", kTProfile, {axisCentBins});
+    histos.add("QynC", "centrality percentile vs #LT Q_{x}^{nC} #GT", kTProfile, {axisCentBins});
+    histos.add("VnAPt", "v_{n} A", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("VnCPt", "v_{n} C", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("SinnAPt", "#LT sin(n*#phi) #GT A", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("SinnCPt", "#LT sin(n*#phi) #GT C", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("CosnAPt", "#LT cos(n*#phi) #GT A", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("CosnCPt", "#LT cos(n*#phi) #GT C", kTProfile2D, {{axisPtBins}, {axisCentBins}});
+    histos.add("EtaPhi", " ", HistType::kTH2F, {{100, -4.0, 2.0}, {100, -3.7, 6.5}});
+    histos.add("CentMult", " ", HistType::kTH2F, {{100, 0, 100}, {200, 0, 3500}});
+  }
+
+  void fillAPt(double trackpt, double cent, double vn, double sinHarm, double cosHarm)
+  {
+    histos.fill(HIST("VnAPt"), trackpt, cent, vn);
+    histos.fill(HIST("SinnAPt"), trackpt, cent, sinHarm);
+    histos.fill(HIST("CosnAPt"), trackpt, cent, cosHarm);
+  }
+
+  void fillCPt(double trackpt, double cent, double vn, double sinHarm, double cosHarm)
+  {
+    histos.fill(HIST("VnCPt"), trackpt, cent, vn);
+    histos.fill(HIST("SinnCPt"), trackpt, cent, sinHarm);
+    histos.fill(HIST("CosnCPt"), trackpt, cent, cosHarm);
+  }
+
+  void fillEtaPhi(double eta, double phi)
+  {
+    histos.fill(HIST("EtaPhi"), eta, phi);
+  }
+  void fillCentMult(double Cent, double Mult)
+  {
+    histos.fill(HIST("CentMult"), Cent, Mult);
   }
 
   // Fill the FlowContainer
@@ -241,6 +306,18 @@ struct DQEventQvector {
     constexpr bool eventHasCentRun2 = ((TEventFillMap & VarManager::ObjTypes::CollisionCentRun2) > 0);
     constexpr bool eventHasCentRun3 = ((TEventFillMap & VarManager::ObjTypes::CollisionCent) > 0);
 
+    Double_t cent = 0.0;
+    Double_t QxnGapA = 0., QynGapA = 0.;
+    Double_t QxnGapC = 0., QynGapC = 0.;
+    Int_t multGapA = 0, multGapC = 0;
+
+    if constexpr (eventHasCentRun2) {
+      cent = VarManager::fgValues[VarManager::kCentVZERO];
+    }
+    if constexpr (eventHasCentRun3) {
+      cent = VarManager::fgValues[VarManager::kCentFT0C];
+    }
+
     // Acceptance and efficiency weights
     float weff = 1.0, wacc = 1.0;
 
@@ -262,7 +339,70 @@ struct DQEventQvector {
       }
       // Fill the GFW for each track to compute Q vector and correction using weights
       fGFW->Fill(track.eta(), 0, track.phi(), wacc * weff, 3); // using default values for ptin = 0 and mask = 3
+
+      Double_t sinHarm = TMath::Sin(nHarm * track.phi());
+      Double_t cosHarm = TMath::Cos(nHarm * track.phi());
+
+      Double_t cosHarmCorr = 0.0;
+      Double_t sinHarmCorr = 0.0;
+
+      if (track.eta() > fConfigEtaLimitMax) {
+        if (cfg.ProfileQxnC) {
+          //                TProfile* histo_cosHarmCorrC =  (TProfile *)cfg.mListCalib->FindObject("QxnC");
+          //                TProfile*  histo_sinHarmCorrC =  (TProfile *)cfg.mListCalib->FindObject("QynC");
+          //                cosHarmCorr = histo_cosHarmCorrC->GetBinContent(histo_cosHarmCorrC->FindBin(cent));
+          //                sinHarmCorr = histo_sinHarmCorrC->GetBinContent(histo_sinHarmCorrC->FindBin(cent));
+          cosHarmCorr = cfg.ProfileQxnC->GetBinContent(cfg.ProfileQxnC->FindBin(cent));
+          sinHarmCorr = cfg.ProfileQynC->GetBinContent(cfg.ProfileQynC->FindBin(cent));
+        }
+        QxnGapC += cosHarm - cosHarmCorr;
+        QynGapC += sinHarm - sinHarmCorr;
+        multGapC++;
+      }
+
+      if (track.eta() < fConfigEtaLimitMin) {
+        if (cfg.ProfileQxnA) {
+          //                TProfile*  histo_cosHarmCorrA =  (TProfile *)cfg.mListCalib->FindObject("QxnA");
+          //                TProfile*  histo_sinHarmCorrA =  (TProfile *)cfg.mListCalib->FindObject("QynA");
+          cosHarmCorr = cfg.ProfileQxnA->GetBinContent(cfg.ProfileQxnA->FindBin(cent));
+          sinHarmCorr = cfg.ProfileQynA->GetBinContent(cfg.ProfileQynA->FindBin(cent));
+        }
+        QxnGapA += cosHarm - cosHarmCorr;
+        QynGapA += sinHarm - sinHarmCorr;
+        multGapA++;
+      }
+      fillEtaPhi(track.eta(), track.phi());
     }
+
+    for (auto& track : tracks1) {
+
+      Double_t sinHarmn = TMath::Sin(nHarm * track.phi());
+      Double_t cosHarmn = TMath::Cos(nHarm * track.phi());
+
+      Double_t harmGapC = cosHarmn * QxnGapC + sinHarmn * QynGapC;
+      Double_t harmGapA = cosHarmn * QxnGapA + sinHarmn * QynGapA;
+
+      Double_t trackpt = track.pt();
+
+      // fill with un_C * Qn_A
+      if (track.eta() > fConfigEtaLimitMax && multGapA > 0) {
+        Double_t vnC = harmGapA / multGapA;
+        fillCPt(trackpt, cent, vnC, sinHarmn, cosHarmn);
+      }
+
+      // fill with un_A * Qn_C
+      if (track.eta() < fConfigEtaLimitMin && multGapC > 0) {
+        Double_t vnA = harmGapC / multGapC;
+        fillAPt(trackpt, cent, vnA, sinHarmn, cosHarmn);
+      }
+      //          for (auto& track2 : tracks1) {
+      //              double Deta = track.eta() -track2.eta();
+      //              double Dphi = track.phi() -track2.phi();
+      //              fillDEtaDPhiVn( Deta ,Dphi, TMath::Cos(nHarm * Dphi) );
+      //          }
+    }
+
+    fillCentMult(cent, tracks1.size());
 
     float l_Random = fRndm->Rndm(); // used only to compute correlators
     bool fillFlag = kFALSE;         // could be used later
@@ -304,6 +444,17 @@ struct DQEventQvector {
       Q3vecN = gfwCumN.Vec(3, fConfigNPow);
       Q3vecP = gfwCumP.Vec(3, fConfigNPow);
       Q3vecFull = gfwCumFull.Vec(3, fConfigNPow);
+
+      if (multGapA > 0 && multGapC > 0) {
+        Double_t resGap = (QxnGapA * QxnGapC + QynGapA * QynGapC) / (multGapA * multGapC);
+        histos.fill(HIST("res"), cent, resGap);
+
+        histos.fill(HIST("QxnA"), cent, QxnGapA / multGapA);
+        histos.fill(HIST("QxnC"), cent, QxnGapC / multGapC);
+
+        histos.fill(HIST("QynA"), cent, QynGapA / multGapA);
+        histos.fill(HIST("QynC"), cent, QynGapC / multGapC);
+      }
     }
 
     // Fill the VarManager::fgValues with the Q vector quantities
@@ -327,13 +478,13 @@ struct DQEventQvector {
   // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses Run 2
   void processBarrelQvectorRun2(MyEventsWithCent::iterator const& collisions, aod::BCsWithTimestamps const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
   {
-    runFillQvector<gkEventFillMap, gkTrackFillMap>(collisions, bcs, tracks);
+    // runFillQvector<gkEventFillMap, gkTrackFillMap>(collisions, bcs, tracks);
   }
 
   // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
   void processBarrelQvector(MyEventsWithCentRun3::iterator const& collisions, aod::BCsWithTimestamps const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
   {
-    runFillQvector<gkEventFillMapRun3, gkTrackFillMap>(collisions, bcs, tracks);
+    // runFillQvector<gkEventFillMapRun3, gkTrackFillMap>(collisions, bcs, tracks);
   }
 
   // Process to fill Q vector using forward tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
@@ -348,8 +499,8 @@ struct DQEventQvector {
     // do nothing
   }
 
-  PROCESS_SWITCH(DQEventQvector, processBarrelQvectorRun2, "Run q-vector task on barrel tracks for Run2", false);
-  PROCESS_SWITCH(DQEventQvector, processBarrelQvector, "Run q-vector task on barrel tracks for Run3", false);
+  // PROCESS_SWITCH(DQEventQvector, processBarrelQvectorRun2, "Run q-vector task on barrel tracks for Run2", false);
+  // PROCESS_SWITCH(DQEventQvector, processBarrelQvector, "Run q-vector task on barrel tracks for Run3", false);
   PROCESS_SWITCH(DQEventQvector, processForwardQvector, "Run q-vector task on forward tracks for Run3", false);
   PROCESS_SWITCH(DQEventQvector, processDummy, "Dummy function", false);
 };
