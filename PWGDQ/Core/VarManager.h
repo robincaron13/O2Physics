@@ -55,6 +55,7 @@
 
 using std::cout;
 using std::endl;
+using SMatrix33 = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
 using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 using SMatrix5 = ROOT::Math::SVector<double, 5>;
 using Vec3D = ROOT::Math::SVector<double, 3>;
@@ -326,6 +327,7 @@ class VarManager : public TObject
     kVertexingTauzErr,
     kVertexingProcCode,
     kVertexingChi2PCA,
+    kVertexingPCAQuality,
     kCosThetaHE,
     kPsiPair,
     kDeltaPhiPair,
@@ -537,6 +539,8 @@ class VarManager : public TObject
   static TString GetRunPeriod(float runNumber);
   template <typename T, typename U, typename V>
   static auto getRotatedCovMatrixXX(const T& matrix, U phi, V theta);
+  template <typename V, typename M, typename T1, typename T2>
+  static auto getPCAQuality(const V secondvtx, const M icov, T1 track1, T2 track2);
   template <typename T>
   static KFPTrack createKFPTrackFromTrack(const T& track);
   template <typename T>
@@ -569,6 +573,32 @@ auto VarManager::getRotatedCovMatrixXX(const T& matrix, U phi, V theta)
          + matrix[3] * 2. * cp * ct * st      // covXZ
          + matrix[4] * 2. * sp * ct * st      // covYZ
          + matrix[5] * st * st;               // covZZ
+}
+
+template <typename V, typename M, typename T1, typename T2>
+auto VarManager::getPCAQuality(const V secondvtx, const M icov, T1 track1, T2 track2)
+{
+  float pcaQuality = 0.;
+  auto dX1 = (secondvtx[0] - track1.x()) * (secondvtx[0] - track1.x());
+  auto dY1 = (secondvtx[1] - track1.y()) * (secondvtx[1] - track1.y());
+  auto weightoffset1 = TMath::Sqrt(0.5 * (dX1 * dX1 * icov(0, 0) + dY1 * dY1 * icov(2, 2) + 2. * dX1 * dY1 * icov(0, 2)));
+  auto dX2 = (secondvtx[0] - track2.x()) * (secondvtx[0] - track2.x());
+  auto dY2 = (secondvtx[1] - track2.y()) * (secondvtx[1] - track2.y());
+  auto weightoffset2 = TMath::Sqrt(0.5 * (dX2 * dX2 * icov(0, 0) + dY2 * dY2 * icov(2, 2) + 2. * dX2 * dY2 * icov(0, 2)));
+
+  // Evaluating the PCA quality of the 2 tracks
+  double f1 = TMath::Exp(-0.5 * weightoffset1);
+  double f2 = TMath::Exp(-0.5 * weightoffset2);
+  double sum = f1 + f2;
+  double squareSum = f1 * f1 + f2 * f2;
+
+  if (sum > 0.) {
+    pcaQuality = (sum - squareSum / sum);
+  } else {
+    pcaQuality = 0.;
+  }
+
+  return pcaQuality;
 }
 
 template <typename T>
@@ -1405,6 +1435,7 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
     if (procCode == 0) {
       // TODO: set the other variables to appropriate values and return
       values[kVertexingChi2PCA] = -999.;
+      values[kVertexingPCAQuality] = -999.;
       values[kVertexingLxy] = -999.;
       values[kVertexingLxyz] = -999.;
       values[kVertexingLz] = -999.;
@@ -1437,7 +1468,10 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
       o2::dataformats::VertexBase primaryVertex = {std::move(vtxXYZ), std::move(vtxCov)};
       // auto primaryVertex = getPrimaryVertex(collision);
       auto covMatrixPV = primaryVertex.getCov();
-
+      SMatrix33 covMatrixPCAnotFlat;
+      bool covPCAInverted = covMatrixPCAnotFlat.Invert();
+      double pcaQuality = 0.0;
+      covPCAInverted = true;
       if constexpr (pairType == kDecayToEE && trackHasCov) {
         secondaryVertex = fgFitterTwoProngBarrel.getPCACandidate();
         bz = fgFitterTwoProngBarrel.getBz();
@@ -1445,11 +1479,18 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
         auto chi2PCA = fgFitterTwoProngBarrel.getChi2AtPCACandidate();
         auto trackParVar0 = fgFitterTwoProngBarrel.getTrack(0);
         auto trackParVar1 = fgFitterTwoProngBarrel.getTrack(1);
+        covMatrixPCAnotFlat = fgFitterTwoProngBarrel.calcPCACovMatrix();
         values[kVertexingChi2PCA] = chi2PCA;
         trackParVar0.getPxPyPzGlo(pvec0);
         trackParVar1.getPxPyPzGlo(pvec1);
         trackParVar0.propagateToDCA(primaryVertex, bz, &impactParameter0);
         trackParVar1.propagateToDCA(primaryVertex, bz, &impactParameter1);
+        // Compute PCA Quality using vtx position and the track pair info both propagated to PCA
+        if (covPCAInverted)
+          pcaQuality = getPCAQuality(secondaryVertex, covMatrixPCAnotFlat, t1, t2);
+        values[kVertexingPCAQuality] = pcaQuality;
+        printf("--------- xv %f   pcaquality %f  \n", secondaryVertex[0], pcaQuality);
+
       } else if constexpr (pairType == kDecayToMuMu && muonHasCov) {
         // Get pca candidate from forward DCA fitter
         m1 = MassMuon;
@@ -1461,6 +1502,7 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
         auto chi2PCA = fgFitterTwoProngFwd.getChi2AtPCACandidate();
         auto trackParVar0 = fgFitterTwoProngFwd.getTrack(0);
         auto trackParVar1 = fgFitterTwoProngFwd.getTrack(1);
+        covMatrixPCAnotFlat = fgFitterTwoProngFwd.calcPCACovMatrix();
         values[kVertexingChi2PCA] = chi2PCA;
         pvec0[0] = trackParVar0.getPx();
         pvec0[1] = trackParVar0.getPy();
@@ -1470,6 +1512,11 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
         pvec1[2] = trackParVar1.getPz();
         trackParVar0.propagateToZlinear(primaryVertex.getZ());
         trackParVar1.propagateToZlinear(primaryVertex.getZ());
+        // Compute PCA Quality using vtx position and the track pair info both propagated to PCA
+        if (covPCAInverted)
+          pcaQuality = getPCAQuality(secondaryVertex, covMatrixPCAnotFlat, t1, t2);
+        values[kVertexingPCAQuality] = pcaQuality;
+        printf("--------- xv %f   pcaquality %f  \n", secondaryVertex[0], pcaQuality);
       }
       // get uncertainty of the decay length
       // double phi, theta;
@@ -1650,6 +1697,7 @@ void VarManager::FillDileptonTrackVertexing(C const& collision, T1 const& lepton
   if (procCode == 0 || procCodeJpsi == 0) {
     // TODO: set the other variables to appropriate values and return
     values[VarManager::kVertexingChi2PCA] = -999.;
+    values[VarManager::kVertexingPCAQuality] = -999.;
     values[VarManager::kVertexingLxy] = -999.;
     values[VarManager::kVertexingLxyz] = -999.;
     values[VarManager::kVertexingLz] = -999.;

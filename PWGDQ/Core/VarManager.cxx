@@ -419,6 +419,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kVertexingProcCode] = "";
   fgVariableNames[kVertexingChi2PCA] = "Pair #chi^{2} at PCA";
   fgVariableUnits[kVertexingChi2PCA] = "";
+  fgVariableNames[kVertexingPCAQuality] = "Pair PCA quality";
+  fgVariableUnits[kVertexingPCAQuality] = "";
   fgVariableNames[kVertexingLxyOverErr] = "Pair Lxy/DLxy";
   fgVariableUnits[kVertexingLxyOverErr] = "";
   fgVariableNames[kVertexingLzOverErr] = "Pair Lz/DLz";
