@@ -74,7 +74,7 @@ using MyTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 using MyMuons = aod::FwdTracks;
 using MyMuonsWithCov = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
 
-constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCentRun2;
+// constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCentRun2;
 constexpr static uint32_t gkEventFillMapRun3 = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackPID;
 
@@ -484,13 +484,13 @@ struct DQEventQvector {
   // Process to fill Q vector using barrel tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
   void processBarrelQvector(MyEventsWithCentRun3::iterator const& collisions, aod::BCsWithTimestamps const& bcs, soa::Filtered<MyBarrelTracks> const& tracks)
   {
-    // runFillQvector<gkEventFillMapRun3, gkTrackFillMap>(collisions, bcs, tracks);
+    runFillQvector<gkEventFillMapRun3, gkTrackFillMap>(collisions, bcs, tracks);
   }
 
   // Process to fill Q vector using forward tracks in a reduced event table for barrel/muon tracks flow related analyses Run 3
   void processForwardQvector(MyEventsWithCentRun3::iterator const& collisions, aod::BCsWithTimestamps const& bcs, soa::Filtered<aod::MFTTracks> const& tracks)
   {
-    runFillQvector<gkEventFillMapRun3, 0u>(collisions, bcs, tracks);
+    // runFillQvector<gkEventFillMapRun3, 0u>(collisions, bcs, tracks);
   }
 
   // TODO: dummy function for the case when no process function is enabled
@@ -500,8 +500,8 @@ struct DQEventQvector {
   }
 
   // PROCESS_SWITCH(DQEventQvector, processBarrelQvectorRun2, "Run q-vector task on barrel tracks for Run2", false);
-  // PROCESS_SWITCH(DQEventQvector, processBarrelQvector, "Run q-vector task on barrel tracks for Run3", false);
-  PROCESS_SWITCH(DQEventQvector, processForwardQvector, "Run q-vector task on forward tracks for Run3", false);
+  PROCESS_SWITCH(DQEventQvector, processBarrelQvector, "Run q-vector task on barrel tracks for Run3", false);
+  // PROCESS_SWITCH(DQEventQvector, processForwardQvector, "Run q-vector task on forward tracks for Run3", false);
   PROCESS_SWITCH(DQEventQvector, processDummy, "Dummy function", false);
 };
 
